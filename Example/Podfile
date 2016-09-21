@@ -1,0 +1,11 @@
+use_frameworks!
+
+target 'SunbeamBLECentralService_Example' do
+  pod 'SunbeamBLECentralService', :path => '../'
+
+  target 'SunbeamBLECentralService_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
