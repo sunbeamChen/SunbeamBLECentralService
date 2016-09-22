@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 
+#import "SunbeamBLECentralConstants.h"
 #import "SunbeamBLECentralManager.h"
 #import "SunbeamBLECentralService.h"
 
