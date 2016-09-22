@@ -5,6 +5,10 @@
 [![License](https://img.shields.io/cocoapods/l/SunbeamBLECentralService.svg?style=flat)](http://cocoapods.org/pods/SunbeamBLECentralService)
 [![Platform](https://img.shields.io/cocoapods/p/SunbeamBLECentralService.svg?style=flat)](http://cocoapods.org/pods/SunbeamBLECentralService)
 
+## Description
+
+SunbeamBLECentralService is a simple framework for iOS bluetooth central develop, it based on CoreBluetooth.
+
 ## Example
 
 To run the example project, clone the repo, and run `pod install` from the Example directory first.

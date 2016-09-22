@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreBluetooth/CoreBluetooth.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.0"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.1"
 
 // 扫描蓝牙设备
 typedef void(^ScanPeripheralListBlock)(CBPeripheral* peripheral, NSDictionary* advertisement, NSNumber* RSSI);
