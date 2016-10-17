@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreBluetooth/CoreBluetooth.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.1"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.2"
 
 // 扫描蓝牙设备
 typedef void(^ScanPeripheralListBlock)(CBPeripheral* peripheral, NSDictionary* advertisement, NSNumber* RSSI);
@@ -102,7 +102,8 @@ typedef void(^SendDataResponseBlock)(CBCharacteristic* characteristic, NSError* 
  2.1、断开连接中的外围设备对象
  
  采用自定义规则：
- 根据receiveDisconnectPeripheralNotifyOrNot的值判断是否接收蓝牙连接断开回调。
+ 主动断开时，根据receiveDisconnectPeripheralNotifyOrNot的值判断是否接收蓝牙连接断开回调。
+ 异常断开时接收蓝牙连接断开通知。
 
  @param receiveDisconnectPeripheralNotifyOrNot 是否接收连接断开通知 YES:接收；NO:不接收。
  */
@@ -136,7 +137,7 @@ typedef void(^SendDataResponseBlock)(CBCharacteristic* characteristic, NSError* 
 /**
  向连接中的外围设备发送数据
 
- @param data 数据(每次最多20字节)
+ @param data 数据
  */
 - (void) sendDataToConnectedPeripheral:(NSData *) data responseOrNot:(BOOL) responseOrNot sendDataResponseBlock:(SendDataResponseBlock) sendDataResponseBlock;
 

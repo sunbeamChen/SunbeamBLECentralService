@@ -217,6 +217,7 @@
             NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
             
             self.disconnectPeripheralBlock(nil, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_PERIPHERAL_DISCONNECT_EXCEPTION userInfo:@{NSLocalizedDescriptionKey:@"peripheral disconnect exception"}]);
+            self.disconnectPeripheralBlock = nil;
         }
     }
     self.sunbeamBLEWriteCharacteristic = nil;
@@ -295,7 +296,7 @@
 /**
  向连接中的外围设备发送数据
  
- @param data 数据(每次最多20字节)
+ @param data 数据
  */
 - (void) sendDataToConnectedPeripheral:(NSData *) data responseOrNot:(BOOL) responseOrNot sendDataResponseBlock:(SendDataResponseBlock) sendDataResponseBlock
 {
