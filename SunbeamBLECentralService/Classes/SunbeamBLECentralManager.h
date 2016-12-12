@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreBluetooth/CoreBluetooth.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.5"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.6"
 
 // 扫描蓝牙设备
 typedef void(^ScanPeripheralListBlock)(CBPeripheral* peripheral, NSDictionary* advertisement, NSNumber* RSSI);
@@ -21,7 +21,7 @@ typedef void(^ConnectPeripheralSuccessBlock)(CBPeripheral* peripheral);
 typedef void(^ConnectPeripheralFailBlock)(CBPeripheral* peripheral, NSError* error);
 
 // 蓝牙连接断开
-typedef void(^DisconnectPeripheralBlock)(CBPeripheral* peripheral, NSError* error);
+typedef void(^DisconnectPeripheralBlock)(CBPeripheral* peripheral);
 
 // 发现蓝牙设备服务
 typedef void(^DiscoverPeripheralServiceListBlock)(CBPeripheral* peripheral, NSError* error);

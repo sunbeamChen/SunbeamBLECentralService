@@ -7,9 +7,6 @@
 //
 
 #import "SunbeamBLECentralManager.h"
-#import "SunbeamBLECentralConstants.h"
-
-#define SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN @"com.sunbeam.ble.error.central"
 
 @interface SunbeamBLECentralManager() <CBCentralManagerDelegate, CBPeripheralDelegate>
 
@@ -60,9 +57,6 @@
 // 主动断开蓝牙连接，自定义是否接收断开通知 YES:接收；NO:不接收。默认为NO
 @property (nonatomic, assign) BOOL receiveDisconnectPeripheralNotifyFlag;
 
-// APP内出错使用代码主动断开蓝牙连接
-@property (nonatomic, assign) BOOL disconnectPeripheralInAPP;
-
 @end
 
 @implementation SunbeamBLECentralManager
@@ -92,7 +86,6 @@
     self.disconnectPeripheralWithCustomStrategyFlag = NO;
     self.disconnectPeripheralManual = NO;
     self.receiveDisconnectPeripheralNotifyFlag = NO;
-    self.disconnectPeripheralInAPP = NO;
     self.sunbeamBLECentralManager = [[CBCentralManager alloc] initWithDelegate:self queue:queue options:options];
 }
 
@@ -157,22 +150,17 @@
 - (void) connectPeripheral:(CBPeripheral *) peripheral options:(NSDictionary *)options connectPeripheralSuccessBlock:(ConnectPeripheralSuccessBlock) connectPeripheralSuccessBlock connectPeripheralFailBlock:(ConnectPeripheralFailBlock) connectPeripheralFailBlock disconnectPeripheralBlock:(DisconnectPeripheralBlock) disconnectPeripheralBlock
 {
     NSAssert(connectPeripheralSuccessBlock != nil, @"connect peripheral success block should not be nil");
-    
     NSAssert(connectPeripheralFailBlock != nil, @"connect peripheral fail block should not be nil");
-    
     NSAssert(disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
+    NSAssert(peripheral != nil, @"connect peripheral should not be nil");
     
-    if (peripheral == nil) {
-        connectPeripheralFailBlock(nil, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_CONNECT_PERIPHERAL_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral is nil"}]);
-        return;
-    }
     self.disconnectPeripheralManual = NO;
     self.disconnectPeripheralWithCustomStrategyFlag = NO;
     self.receiveDisconnectPeripheralNotifyFlag = NO;
-    self.disconnectPeripheralInAPP = NO;
     self.connectPeripheralSuccessBlock = connectPeripheralSuccessBlock;
     self.connectPeripheralFailBlock = connectPeripheralFailBlock;
     self.disconnectPeripheralBlock = disconnectPeripheralBlock;
+    
     [self.sunbeamBLECentralManager connectPeripheral:peripheral options:options];
 }
 
@@ -219,8 +207,7 @@
         if (self.receiveDisconnectPeripheralNotifyFlag) {
             self.receiveDisconnectPeripheralNotifyFlag = NO;
             NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
-            
-            self.disconnectPeripheralBlock(nil, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_PERIPHERAL_DISCONNECT_EXCEPTION userInfo:@{NSLocalizedDescriptionKey:@"peripheral disconnect exception"}]);
+            self.disconnectPeripheralBlock(nil);
             self.disconnectPeripheralBlock = nil;
         }
     }
@@ -307,25 +294,13 @@
     if (![self checkConnectedPeripheralExistOrNot]) {
         return;
     }
-    if (data == nil) {
-        NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
-        
-        self.disconnectPeripheralBlock(nil, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_DATA_SEND_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"data send is nil"}]);
-        self.disconnectPeripheralBlock = nil;
-        [self disconnectPeripheralInAPPException];
-        return;
-    }
-    if (self.sunbeamBLEWriteCharacteristic == nil) {
-        NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
-        
-        self.disconnectPeripheralBlock(nil, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_PERIPHERAL_WRITE_CHARACTERISTIC_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"peripheral write characteristic is nil"}]);
-        self.disconnectPeripheralBlock = nil;
-        [self disconnectPeripheralInAPPException];
-        return;
-    }
+    
+    NSAssert(data != nil, @"data send should not be nil");
+    
+    NSAssert(self.sunbeamBLEWriteCharacteristic != nil, @"peripheral write characteristic should not be nil");
+    
     if (responseOrNot) {
         NSAssert(sendDataResponseBlock != nil, @"send data response block should not be nil when it set to be YES");
-        
         self.sendDataResponseBlock = sendDataResponseBlock;
         [self.connectedPeripheral writeValue:data forCharacteristic:self.sunbeamBLEWriteCharacteristic type:CBCharacteristicWriteWithResponse];
     } else {
@@ -342,32 +317,9 @@
 - (BOOL) checkConnectedPeripheralExistOrNot
 {
     if (self.connectedPeripheral == nil) {
-        NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
-        
-        self.disconnectPeripheralBlock(nil, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_CONNECTED_PERIPHERAL_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connected peripheral is nil"}]);
-        self.disconnectPeripheralBlock = nil;
-        [self disconnectPeripheralInAPPException];
         return NO;
     }
-    
     return YES;
-}
-
-
-/**
- APP内使用代码断开当前蓝牙连接，在代码出现问题时
- */
-- (void) disconnectPeripheralInAPPException
-{
-    self.disconnectPeripheralManual = NO;
-    self.disconnectPeripheralInAPP = YES;
-    if (self.connectedPeripheral) {
-        [self.sunbeamBLECentralManager cancelPeripheralConnection:self.connectedPeripheral];
-    }
-    self.sunbeamBLEWriteCharacteristic = nil;
-    self.sunbeamBLENotifyCharacteristic = nil;
-    self.connectedPeripheral.delegate = nil;
-    self.connectedPeripheral = nil;
 }
 
 #pragma mark - CBCentralManagerDelegate
@@ -414,13 +366,12 @@
 {
     NSAssert(self.connectPeripheralFailBlock != nil, @"connect peripheral fail block should not be nil");
     
-    self.connectPeripheralFailBlock(peripheral, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_CONNECT_PERIPHERAL_FAILED userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral failed"}]);
+    self.connectPeripheralFailBlock(peripheral, error);
     self.connectPeripheralFailBlock = nil;
 }
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(nullable NSError *)error
 {
-    NSLog(@"蓝牙连接异常断开,error:%@,self.disconnectPeripheralManual:%d,self.disconnectPeripheralWithCustomStrategyFlag:%d,self.receiveDisconnectPeripheralNotifyFlag:%d", error, self.disconnectPeripheralManual, self.disconnectPeripheralWithCustomStrategyFlag, self.receiveDisconnectPeripheralNotifyFlag);
     if (self.disconnectPeripheralManual) {
         // 主动断开蓝牙连接时需要根据用户断开策略进行后续处理
         self.disconnectPeripheralManual = NO;
@@ -428,27 +379,25 @@
             // 主动断开，自定义规则
             self.disconnectPeripheralWithCustomStrategyFlag = NO;
             if (self.receiveDisconnectPeripheralNotifyFlag) {
-                // 用户主动断开时希望接收断开回调
+                // 用户主动断开时希望接收断开连接回调
                 self.receiveDisconnectPeripheralNotifyFlag = NO;
                 NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
-                
-                self.disconnectPeripheralBlock(peripheral, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_PERIPHERAL_DISCONNECT_EXCEPTION userInfo:@{NSLocalizedDescriptionKey:@"peripheral disconnect exception"}]);
+                self.disconnectPeripheralBlock(peripheral);
+            } else {
+                // 用户主动断开式不希望接收断开连接回调
             }
+        } else {
+            // 默认规则不尽兴蓝牙连接断开通知
         }
     } else {
-        if (self.disconnectPeripheralInAPP) {
-            // 代码内部断开蓝牙连接，此时回调已经完成
-            self.disconnectPeripheralInAPP = NO;
-        } else {
-            // 蓝牙连接异常断开时，调用断开回调
-            NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
-            
-            self.disconnectPeripheralBlock(peripheral, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_PERIPHERAL_DISCONNECT_EXCEPTION userInfo:@{NSLocalizedDescriptionKey:@"peripheral disconnect exception"}]);
-            self.sunbeamBLEWriteCharacteristic = nil;
-            self.sunbeamBLENotifyCharacteristic = nil;
-            self.connectedPeripheral.delegate = nil;
-            self.connectedPeripheral = nil;
-        }
+        // 蓝牙连接异常断开时，调用断开回调
+        NSAssert(self.disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
+        
+        self.disconnectPeripheralBlock(peripheral);
+        self.sunbeamBLEWriteCharacteristic = nil;
+        self.sunbeamBLENotifyCharacteristic = nil;
+        self.connectedPeripheral.delegate = nil;
+        self.connectedPeripheral = nil;
     }
     self.discoverPeripheralServiceListBlock = nil;
     self.discoverPeripheralServiceCharacteristicListBlock = nil;
@@ -463,7 +412,7 @@
     NSAssert(self.discoverPeripheralServiceListBlock != nil, @"discover peripheral service list block should not be nil");
     
     if (error) {
-        self.discoverPeripheralServiceListBlock(peripheral, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_PERIPHERAL_SERVICE_DISCOVER_ERROR userInfo:@{NSLocalizedDescriptionKey:@"peripheral service discover error"}]);
+        self.discoverPeripheralServiceListBlock(peripheral, error);
     } else {
         self.discoverPeripheralServiceListBlock(peripheral, nil);
     }
@@ -474,7 +423,7 @@
     NSAssert(self.discoverPeripheralServiceCharacteristicListBlock != nil, @"discover peripheral service characteristic list block should not be nil");
     
     if (error) {
-        self.discoverPeripheralServiceCharacteristicListBlock(peripheral, service, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_PERIPHERAL_SERVICE_CHARACTERISTIC_DISCOVER_ERROR userInfo:@{NSLocalizedDescriptionKey:@"peripheral service characteristic discover error"}]);
+        self.discoverPeripheralServiceCharacteristicListBlock(peripheral, service, error);
     } else {
         self.discoverPeripheralServiceCharacteristicListBlock(peripheral, service, nil);
     }
@@ -485,7 +434,7 @@
     NSAssert(self.receivedConnectedPeripheralNotifyValueBlock != nil, @"received connected peripheral notify value block should not be nil");
     
     if (error) {
-        self.receivedConnectedPeripheralNotifyValueBlock(peripheral, characteristic, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_RECEIVED_CONNECTED_PERIPHERAL_NOTIFY_VALUE_BLOCK_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"received connected peripheral notify value block is nil"}]);
+        self.receivedConnectedPeripheralNotifyValueBlock(peripheral, characteristic, error);
     } else {
         self.receivedConnectedPeripheralNotifyValueBlock(peripheral, characteristic, nil);
     }
@@ -496,7 +445,7 @@
     NSAssert(self.receivedConnectedPeripheralRSSIValueBlock != nil, @"received connected peripheral RSSI value block should not be nil");
     
     if (error) {
-        self.receivedConnectedPeripheralRSSIValueBlock(RSSI, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_RECEIVED_CONNECTED_PERIPHERAL_RSSI_VALUE_BLOCK_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"received connected peripheral RSSI value block is nil"}]);
+        self.receivedConnectedPeripheralRSSIValueBlock(RSSI, error);
     } else {
         self.receivedConnectedPeripheralRSSIValueBlock(RSSI, nil);
     }
@@ -507,8 +456,7 @@
 {
     if (self.sendDataResponseBlock) {
         if (error) {
-            NSLog(@"实际写入数据后回调错误error为：%@", error);
-            self.sendDataResponseBlock(characteristic, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_WRITE_VALUE_TO_PERIPHERAL_ERROR userInfo:@{NSLocalizedDescriptionKey:@"write value to peripheral error"}]);
+            self.sendDataResponseBlock(characteristic, error);
         } else {
             self.sendDataResponseBlock(characteristic, nil);
         }
