@@ -1,0 +1,26 @@
+//
+//  SunbeamBLECentralConstants.h
+//  Pods
+//
+//  Created by sunbeam on 16/9/21.
+//
+//
+
+#ifndef SunbeamBLECentralConstants_h
+#define SunbeamBLECentralConstants_h
+
+typedef NS_ENUM(NSInteger, SBCErrorCode) {
+    SBC_ERROR_CONNECT_PERIPHERAL_IS_NIL = -10000, // connect peripheral is nil
+    SBC_ERROR_CONNECTED_PERIPHERAL_IS_NIL = SBC_ERROR_CONNECT_PERIPHERAL_IS_NIL + 1, // connected peripheral is nil
+    SBC_ERROR_DATA_SEND_IS_NIL = SBC_ERROR_CONNECTED_PERIPHERAL_IS_NIL + 1, // data send is nil
+    SBC_ERROR_PERIPHERAL_WRITE_CHARACTERISTIC_IS_NIL = SBC_ERROR_DATA_SEND_IS_NIL + 1, // peripheral write characteristic is nil
+    SBC_ERROR_CONNECT_PERIPHERAL_FAILED = SBC_ERROR_PERIPHERAL_WRITE_CHARACTERISTIC_IS_NIL + 1, // connect peripheral failed
+    SBC_ERROR_PERIPHERAL_DISCONNECT_EXCEPTION = SBC_ERROR_CONNECT_PERIPHERAL_FAILED + 1, // peripheral disconnect exception
+    SBC_ERROR_PERIPHERAL_SERVICE_DISCOVER_ERROR = SBC_ERROR_PERIPHERAL_DISCONNECT_EXCEPTION + 1, // peripheral service discover error
+    SBC_ERROR_PERIPHERAL_SERVICE_CHARACTERISTIC_DISCOVER_ERROR = SBC_ERROR_PERIPHERAL_SERVICE_DISCOVER_ERROR + 1, // peripheral service characteristic discover error
+    SBC_ERROR_RECEIVED_CONNECTED_PERIPHERAL_NOTIFY_VALUE_BLOCK_IS_NIL = SBC_ERROR_PERIPHERAL_SERVICE_CHARACTERISTIC_DISCOVER_ERROR + 1, // received connected peripheral notify value block is nil
+    SBC_ERROR_RECEIVED_CONNECTED_PERIPHERAL_RSSI_VALUE_BLOCK_IS_NIL = SBC_ERROR_RECEIVED_CONNECTED_PERIPHERAL_NOTIFY_VALUE_BLOCK_IS_NIL + 1, // received connected peripheral RSSI value block is nil
+    SBC_ERROR_WRITE_VALUE_TO_PERIPHERAL_ERROR = SBC_ERROR_RECEIVED_CONNECTED_PERIPHERAL_RSSI_VALUE_BLOCK_IS_NIL + 1, // write value to peripheral error
+};
+
+#endif /* SunbeamBLECentralConstants_h */
