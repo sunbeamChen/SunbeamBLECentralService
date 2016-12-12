@@ -1,5 +1,5 @@
 PODS:
-  - SunbeamBLECentralService (0.1.4)
+  - SunbeamBLECentralService (0.1.5)
 
 DEPENDENCIES:
   - SunbeamBLECentralService (from `../`)
@@ -9,7 +9,7 @@ EXTERNAL SOURCES:
     :path: ../
 
 SPEC CHECKSUMS:
-  SunbeamBLECentralService: d08c8b4d25e4be29576c83b3be98efb2e208a06e
+  SunbeamBLECentralService: 240aea5a2ed5afd13d36fb42153b167d3ecec272
 
 PODFILE CHECKSUM: f37e85d90ca60be4f8aae4fad6121776822a6ace
 

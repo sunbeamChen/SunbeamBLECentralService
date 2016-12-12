@@ -166,6 +166,10 @@
         connectPeripheralFailBlock(nil, [NSError errorWithDomain:SUNBEAM_BLE_CENTRAL_MANAGER_ERROR_DOMAIN code:SBC_ERROR_CONNECT_PERIPHERAL_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral is nil"}]);
         return;
     }
+    self.disconnectPeripheralManual = NO;
+    self.disconnectPeripheralWithCustomStrategyFlag = NO;
+    self.receiveDisconnectPeripheralNotifyFlag = NO;
+    self.disconnectPeripheralInAPP = NO;
     self.connectPeripheralSuccessBlock = connectPeripheralSuccessBlock;
     self.connectPeripheralFailBlock = connectPeripheralFailBlock;
     self.disconnectPeripheralBlock = disconnectPeripheralBlock;
