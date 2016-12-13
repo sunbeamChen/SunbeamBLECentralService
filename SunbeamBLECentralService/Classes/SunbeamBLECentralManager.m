@@ -117,8 +117,9 @@
  */
 - (void) scanPeripheralListWithServices:(NSArray *) services options:(NSDictionary *)options scanPeripheralListBlock:(ScanPeripheralListBlock) scanPeripheralListBlock
 {
+    NSLog(@"===扫描发现设备开始1");
     NSAssert(scanPeripheralListBlock != nil, @"scan block should not be nil");
-    
+    NSLog(@"===扫描发现设备开始2");
     self.scanPeripheralListBlock = scanPeripheralListBlock;
     if (services != nil && [services count] > 0) {
         NSMutableArray* serviceUUIDs = [[NSMutableArray alloc] init];
@@ -129,6 +130,7 @@
     } else {
         [self.sunbeamBLECentralManager scanForPeripheralsWithServices:nil options:options];
     }
+    NSLog(@"===扫描发现设备结束");
 }
 
 /**
@@ -152,11 +154,12 @@
  */
 - (void) connectPeripheral:(CBPeripheral *) peripheral options:(NSDictionary *)options connectPeripheralSuccessBlock:(ConnectPeripheralSuccessBlock) connectPeripheralSuccessBlock connectPeripheralFailBlock:(ConnectPeripheralFailBlock) connectPeripheralFailBlock disconnectPeripheralBlock:(DisconnectPeripheralBlock) disconnectPeripheralBlock
 {
+    NSLog(@"===连接外设开始1");
     NSAssert(connectPeripheralSuccessBlock != nil, @"connect peripheral success block should not be nil");
     NSAssert(connectPeripheralFailBlock != nil, @"connect peripheral fail block should not be nil");
     NSAssert(disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
     NSAssert(peripheral != nil, @"connect peripheral should not be nil");
-    
+    NSLog(@"===连接外设开始2");
     self.disconnectPeripheralManual = NO;
     self.disconnectPeripheralWithCustomStrategyFlag = NO;
     self.receiveDisconnectPeripheralNotifyFlag = NO;
@@ -165,6 +168,7 @@
     self.disconnectPeripheralBlock = disconnectPeripheralBlock;
     
     [self.sunbeamBLECentralManager connectPeripheral:peripheral options:options];
+    NSLog(@"===连接外设结束");
 }
 
 /**
@@ -303,7 +307,7 @@
     self.dataSend = data;
     self.sendDataResponseBlock = sendCompletion;
     
-    NSLog(@"===向设备发送数据开始");
+    NSLog(@"===向设备发送数据开始:%@", self.dataSend);
     [self sendData:[self.dataSend objectAtIndex:0]];
 }
 
@@ -355,6 +359,7 @@
 
 - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary<NSString *, id> *)advertisementData RSSI:(NSNumber *)RSSI
 {
+    NSLog(@"扫描发现设备:%@", advertisementData);
     NSAssert(self.scanPeripheralListBlock != nil, @"scan block should not be nil");
     
     self.scanPeripheralListBlock(peripheral, advertisementData, RSSI);
@@ -380,6 +385,7 @@
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(nullable NSError *)error
 {
+    NSLog(@"蓝牙设备断开连接,self.disconnectPeripheralManual:%@, self.disconnectPeripheralWithCustomStrategyFlag:%@, self.receiveDisconnectPeripheralNotifyFlag:%@", self.disconnectPeripheralManual, self.disconnectPeripheralWithCustomStrategyFlag, self.receiveDisconnectPeripheralNotifyFlag);
     if (self.disconnectPeripheralManual) {
         // 主动断开蓝牙连接时需要根据用户断开策略进行后续处理
         self.disconnectPeripheralManual = NO;
