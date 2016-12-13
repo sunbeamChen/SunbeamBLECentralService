@@ -40,6 +40,9 @@
 // 读取蓝牙设备RSSI值block
 @property (nonatomic, strong) ReceivedConnectedPeripheralRSSIValueBlock receivedConnectedPeripheralRSSIValueBlock;
 
+// 发送数据完毕回调block
+@property (nonatomic, strong) SendDataResponseBlock sendDataResponseBlock;
+
 #pragma mark - private var define
 
 // 中心设备管理器
@@ -289,21 +292,18 @@
  
  @param data 数据
  */
-- (void) sendDataToConnectedPeripheral:(NSMutableArray<NSData *> *) data
+- (void) sendDataToConnectedPeripheral:(NSMutableArray<NSData *> *) data sendCompletion:(SendDataResponseBlock) sendCompletion
 {
+    NSAssert(sendCompletion != nil, @"data send completion block should not be nil");
+    
     if (![self checkConnectedPeripheralExistOrNot]) {
         return;
     }
     
     self.dataSend = data;
+    self.sendDataResponseBlock = sendCompletion;
     
     NSLog(@"===向设备发送数据开始");
-    if (self.dataSend == nil || [self.dataSend count] <= 0) {
-        NSLog(@"向设备发送的数据为空,self.dataSend:%@", self.dataSend);
-        NSLog(@"===向设备发送数据完毕");
-        self.dataSend = nil;
-        return;
-    }
     [self sendData:[self.dataSend objectAtIndex:0]];
 }
 
@@ -465,6 +465,7 @@
     if (error) {
         NSLog(@"向设备发送数据失败:%@", error);
         self.dataSend = nil;
+        self.sendDataResponseBlock(error);
     } else {
         NSLog(@"向设备发送数据成功:%@", [self.dataSend objectAtIndex:0]);
         [self.dataSend removeObjectAtIndex:0];
@@ -472,6 +473,7 @@
             [self sendData:[self.dataSend objectAtIndex:0]];
         } else {
             NSLog(@"===向设备发送数据完毕");
+            self.sendDataResponseBlock(nil);
         }
     }
 }
