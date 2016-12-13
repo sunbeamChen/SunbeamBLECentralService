@@ -385,7 +385,7 @@
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(nullable NSError *)error
 {
-    NSLog(@"蓝牙设备断开连接,self.disconnectPeripheralManual:%@, self.disconnectPeripheralWithCustomStrategyFlag:%@, self.receiveDisconnectPeripheralNotifyFlag:%@", self.disconnectPeripheralManual, self.disconnectPeripheralWithCustomStrategyFlag, self.receiveDisconnectPeripheralNotifyFlag);
+    NSLog(@"蓝牙设备断开连接,self.disconnectPeripheralManual:%d, self.disconnectPeripheralWithCustomStrategyFlag:%d, self.receiveDisconnectPeripheralNotifyFlag:%d", self.disconnectPeripheralManual, self.disconnectPeripheralWithCustomStrategyFlag, self.receiveDisconnectPeripheralNotifyFlag);
     if (self.disconnectPeripheralManual) {
         // 主动断开蓝牙连接时需要根据用户断开策略进行后续处理
         self.disconnectPeripheralManual = NO;
