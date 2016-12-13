@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreBluetooth/CoreBluetooth.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.6"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.7"
 
 // 扫描蓝牙设备
 typedef void(^ScanPeripheralListBlock)(CBPeripheral* peripheral, NSDictionary* advertisement, NSNumber* RSSI);
@@ -34,9 +34,6 @@ typedef void(^ReceivedConnectedPeripheralNotifyValueBlock)(CBPeripheral* periphe
 
 // 读取蓝牙设备RSSI值后收到回调
 typedef void(^ReceivedConnectedPeripheralRSSIValueBlock)(NSNumber* RSSI, NSError* error);
-
-// 向设备写数据后回调
-typedef void(^SendDataResponseBlock)(CBCharacteristic* characteristic, NSError* error);
 
 @interface SunbeamBLECentralManager : NSObject
 
@@ -139,6 +136,6 @@ typedef void(^SendDataResponseBlock)(CBCharacteristic* characteristic, NSError* 
 
  @param data 数据
  */
-- (void) sendDataToConnectedPeripheral:(NSData *) data responseOrNot:(BOOL) responseOrNot sendDataResponseBlock:(SendDataResponseBlock) sendDataResponseBlock;
+- (void) sendDataToConnectedPeripheral:(NSMutableArray<NSData *> *) data;
 
 @end

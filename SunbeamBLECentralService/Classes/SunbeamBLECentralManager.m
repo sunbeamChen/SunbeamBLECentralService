@@ -40,9 +40,6 @@
 // 读取蓝牙设备RSSI值block
 @property (nonatomic, strong) ReceivedConnectedPeripheralRSSIValueBlock receivedConnectedPeripheralRSSIValueBlock;
 
-// 写入数据后block
-@property (nonatomic, strong) SendDataResponseBlock sendDataResponseBlock;
-
 #pragma mark - private var define
 
 // 中心设备管理器
@@ -56,6 +53,9 @@
 
 // 主动断开蓝牙连接，自定义是否接收断开通知 YES:接收；NO:不接收。默认为NO
 @property (nonatomic, assign) BOOL receiveDisconnectPeripheralNotifyFlag;
+
+// 需要发送的数据
+@property (nonatomic, strong) NSMutableArray* dataSend;
 
 @end
 
@@ -289,23 +289,31 @@
  
  @param data 数据
  */
-- (void) sendDataToConnectedPeripheral:(NSData *) data responseOrNot:(BOOL) responseOrNot sendDataResponseBlock:(SendDataResponseBlock) sendDataResponseBlock
+- (void) sendDataToConnectedPeripheral:(NSMutableArray<NSData *> *) data
 {
     if (![self checkConnectedPeripheralExistOrNot]) {
         return;
     }
     
+    self.dataSend = data;
+    
+    NSLog(@"===向设备发送数据开始");
+    if (self.dataSend == nil || [self.dataSend count] <= 0) {
+        NSLog(@"向设备发送的数据为空,self.dataSend:%@", self.dataSend);
+        NSLog(@"===向设备发送数据完毕");
+        self.dataSend = nil;
+        return;
+    }
+    [self sendData:[self.dataSend objectAtIndex:0]];
+}
+
+- (void) sendData:(NSData *) data
+{
     NSAssert(data != nil, @"data send should not be nil");
     
     NSAssert(self.sunbeamBLEWriteCharacteristic != nil, @"peripheral write characteristic should not be nil");
     
-    if (responseOrNot) {
-        NSAssert(sendDataResponseBlock != nil, @"send data response block should not be nil when it set to be YES");
-        self.sendDataResponseBlock = sendDataResponseBlock;
-        [self.connectedPeripheral writeValue:data forCharacteristic:self.sunbeamBLEWriteCharacteristic type:CBCharacteristicWriteWithResponse];
-    } else {
-        [self.connectedPeripheral writeValue:data forCharacteristic:self.sunbeamBLEWriteCharacteristic type:CBCharacteristicWriteWithoutResponse];
-    }
+    [self.connectedPeripheral writeValue:data forCharacteristic:self.sunbeamBLEWriteCharacteristic type:CBCharacteristicWriteWithResponse];
 }
 
 #pragma mark - private method
@@ -454,11 +462,16 @@
 
 - (void)peripheral:(CBPeripheral *)peripheral didWriteValueForCharacteristic:(CBCharacteristic *)characteristic error:(nullable NSError *)error
 {
-    if (self.sendDataResponseBlock) {
-        if (error) {
-            self.sendDataResponseBlock(characteristic, error);
+    if (error) {
+        NSLog(@"向设备发送数据失败:%@", error);
+        self.dataSend = nil;
+    } else {
+        NSLog(@"向设备发送数据成功:%@", [self.dataSend objectAtIndex:0]);
+        [self.dataSend removeObjectAtIndex:0];
+        if ([self.dataSend count] > 0) {
+            [self sendData:[self.dataSend objectAtIndex:0]];
         } else {
-            self.sendDataResponseBlock(characteristic, nil);
+            NSLog(@"===向设备发送数据完毕");
         }
     }
 }
