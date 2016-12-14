@@ -117,9 +117,8 @@
  */
 - (void) scanPeripheralListWithServices:(NSArray *) services options:(NSDictionary *)options scanPeripheralListBlock:(ScanPeripheralListBlock) scanPeripheralListBlock
 {
-    NSLog(@"===扫描发现设备开始1");
     NSAssert(scanPeripheralListBlock != nil, @"scan block should not be nil");
-    NSLog(@"===扫描发现设备开始2");
+
     self.scanPeripheralListBlock = scanPeripheralListBlock;
     if (services != nil && [services count] > 0) {
         NSMutableArray* serviceUUIDs = [[NSMutableArray alloc] init];
@@ -130,7 +129,6 @@
     } else {
         [self.sunbeamBLECentralManager scanForPeripheralsWithServices:nil options:options];
     }
-    NSLog(@"===扫描发现设备结束");
 }
 
 /**
@@ -154,12 +152,11 @@
  */
 - (void) connectPeripheral:(CBPeripheral *) peripheral options:(NSDictionary *)options connectPeripheralSuccessBlock:(ConnectPeripheralSuccessBlock) connectPeripheralSuccessBlock connectPeripheralFailBlock:(ConnectPeripheralFailBlock) connectPeripheralFailBlock disconnectPeripheralBlock:(DisconnectPeripheralBlock) disconnectPeripheralBlock
 {
-    NSLog(@"===连接外设开始1");
     NSAssert(connectPeripheralSuccessBlock != nil, @"connect peripheral success block should not be nil");
     NSAssert(connectPeripheralFailBlock != nil, @"connect peripheral fail block should not be nil");
     NSAssert(disconnectPeripheralBlock != nil, @"disconnect peripheral block should not be nil");
     NSAssert(peripheral != nil, @"connect peripheral should not be nil");
-    NSLog(@"===连接外设开始2");
+
     self.disconnectPeripheralManual = NO;
     self.disconnectPeripheralWithCustomStrategyFlag = NO;
     self.receiveDisconnectPeripheralNotifyFlag = NO;
@@ -168,7 +165,6 @@
     self.disconnectPeripheralBlock = disconnectPeripheralBlock;
     
     [self.sunbeamBLECentralManager connectPeripheral:peripheral options:options];
-    NSLog(@"===连接外设结束");
 }
 
 /**
@@ -235,6 +231,7 @@
     NSAssert(discoverPeripheralServiceListBlock != nil, @"discover peripheral service list block should not be nil");
     
     if (![self checkConnectedPeripheralExistOrNot]) {
+        discoverPeripheralServiceListBlock(nil, [NSError errorWithDomain:@"com.error.ble.central.manager" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"check connected peripheral not exist"}]);
         return;
     }
     self.discoverPeripheralServiceListBlock = discoverPeripheralServiceListBlock;
@@ -262,6 +259,7 @@
     NSAssert(services != nil && [services count] > 0, @" peripheral services should have at least one service when discover characteristic list");
     
     if (![self checkConnectedPeripheralExistOrNot]) {
+        discoverPeripheralServiceCharacteristicListBlock(nil, nil, [NSError errorWithDomain:@"com.error.ble.central.manager" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"check connected peripheral not exist"}]);
         return;
     }
     self.discoverPeripheralServiceCharacteristicListBlock = discoverPeripheralServiceCharacteristicListBlock;
@@ -285,6 +283,7 @@
     NSAssert(receivedConnectedPeripheralRSSIValueBlock != nil, @"received connected peripheral RSSI value block should not be nil");
     
     if (![self checkConnectedPeripheralExistOrNot]) {
+        receivedConnectedPeripheralRSSIValueBlock(@0, [NSError errorWithDomain:@"com.error.ble.central.manager" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"check connected peripheral not exist"}]);
         return;
     }
     self.receivedConnectedPeripheralRSSIValueBlock = receivedConnectedPeripheralRSSIValueBlock;
@@ -301,6 +300,7 @@
     NSAssert(sendCompletion != nil, @"data send completion block should not be nil");
     
     if (![self checkConnectedPeripheralExistOrNot]) {
+        sendCompletion([NSError errorWithDomain:@"com.error.ble.central.manager" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"check connected peripheral not exist"}]);
         return;
     }
     
