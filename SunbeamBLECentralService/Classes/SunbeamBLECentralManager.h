@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreBluetooth/CoreBluetooth.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.12"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.13"
 
 // 扫描蓝牙设备
 typedef void(^ScanPeripheralListBlock)(CBPeripheral* peripheral, NSDictionary* advertisement, NSNumber* RSSI);
@@ -38,6 +38,9 @@ typedef void(^ReceivedConnectedPeripheralRSSIValueBlock)(NSNumber* RSSI, NSError
 // 向设备写数据后回调
 typedef void(^SendDataResponseBlock)(NSError* error);
 
+// 蓝牙功能开启关闭通知
+typedef void(^BluetoothStateChanged)(BOOL isOn);
+
 @interface SunbeamBLECentralManager : NSObject
 
 // 设备蓝牙功能是否开启
@@ -63,6 +66,13 @@ typedef void(^SendDataResponseBlock)(NSError* error);
  初始化中心设备管理对象(即初始化当前设备为蓝牙中心设备)
  */
 - (void) initSunbeamBLECentralManagerWithQueue:(dispatch_queue_t)queue options:(NSDictionary<NSString *, id> *) options;
+
+/**
+ 开始监听蓝牙状态
+
+ @param bluetoothStateChanged 蓝牙状态改变回调
+ */
+- (void) startListenBluetoothState:(BluetoothStateChanged) bluetoothStateChanged;
 
 /**
  1、扫描蓝牙外围设备

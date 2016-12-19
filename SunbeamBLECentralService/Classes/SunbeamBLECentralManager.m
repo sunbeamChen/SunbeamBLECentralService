@@ -43,6 +43,9 @@
 // 发送数据完毕回调block
 @property (nonatomic, strong) SendDataResponseBlock sendDataResponseBlock;
 
+// 蓝牙状态改变回调block
+@property (nonatomic, strong) BluetoothStateChanged bluetoothStateChangedBlock;
+
 #pragma mark - private var define
 
 // 中心设备管理器
@@ -92,6 +95,17 @@
     self.sunbeamBLECentralManager = [[CBCentralManager alloc] initWithDelegate:self queue:queue options:options];
 }
 
+/**
+ 开始监听蓝牙状态
+ 
+ @param bluetoothStateChanged 蓝牙状态改变回调
+ */
+- (void) startListenBluetoothState:(BluetoothStateChanged) bluetoothStateChanged
+{
+    NSAssert(bluetoothStateChanged != nil, @"bluetooth state changed block should not be nil");
+    
+    self.bluetoothStateChangedBlock = bluetoothStateChanged;
+}
 
 /**
  中心管理器对象销毁
@@ -341,6 +355,7 @@
         case CBCentralManagerStatePoweredOn:
         {
             self.isBluetoothEnabled = YES;
+            self.bluetoothStateChangedBlock(YES);
             break;
         }
             
@@ -352,6 +367,7 @@
         default:
         {
             self.isBluetoothEnabled = NO;
+            self.bluetoothStateChangedBlock(NO);
             break;
         }
     }
