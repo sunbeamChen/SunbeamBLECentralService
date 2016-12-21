@@ -355,7 +355,9 @@
         case CBCentralManagerStatePoweredOn:
         {
             self.isBluetoothEnabled = YES;
-            self.bluetoothStateChangedBlock(YES);
+            if (self.bluetoothStateChangedBlock) {
+                self.bluetoothStateChangedBlock(YES);
+            }
             break;
         }
             
@@ -367,7 +369,9 @@
         default:
         {
             self.isBluetoothEnabled = NO;
-            self.bluetoothStateChangedBlock(NO);
+            if (self.bluetoothStateChangedBlock) {
+                self.bluetoothStateChangedBlock(NO);
+            }
             break;
         }
     }
