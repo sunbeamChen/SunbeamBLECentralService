@@ -1,6 +1,0 @@
-framework module SunbeamBLECentralService {
-  umbrella header "SunbeamBLECentralService.h"
-
-  export *
-  module * { export * }
-}
