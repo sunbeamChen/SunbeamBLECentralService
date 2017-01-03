@@ -145,7 +145,7 @@
             [self.sunbeamBLECentralManager scanForPeripheralsWithServices:nil options:options];
         }
     } else {
-        NSLog(@"scan block should not be nil");
+        NSLog(@"scan peripheral list block should not be nil");
     }
 }
 
@@ -211,6 +211,8 @@
     self.receiveDisconnectPeripheralNotifyFlag = NO;
     if (self.connectedPeripheral) {
         [self.sunbeamBLECentralManager cancelPeripheralConnection:self.connectedPeripheral];
+    } else {
+        NSLog(@"current connect peripheral is nil");
     }
     self.sunbeamBLEWriteCharacteristic = nil;
     self.sunbeamBLENotifyCharacteristic = nil;
@@ -270,6 +272,7 @@
         discoverPeripheralServiceListBlock(nil, [NSError errorWithDomain:@"com.error.ble.central.manager" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"check connected peripheral not exist"}]);
         return;
     }
+    
     self.discoverPeripheralServiceListBlock = discoverPeripheralServiceListBlock;
     if (services == nil || [services count] <= 0) {
         services = nil;
@@ -296,7 +299,7 @@
         NSLog(@"received connected peripheral notify value block should not be nil");
         return;
     }
-    if (services != nil && [services count] > 0) {
+    if (services == nil || [services count] <= 0) {
         NSLog(@" peripheral services should have at least one service when discover characteristic list");
         return;
     }
@@ -305,6 +308,7 @@
         discoverPeripheralServiceCharacteristicListBlock(nil, nil, [NSError errorWithDomain:@"com.error.ble.central.manager" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"check connected peripheral not exist"}]);
         return;
     }
+    
     self.discoverPeripheralServiceCharacteristicListBlock = discoverPeripheralServiceCharacteristicListBlock;
     self.receivedConnectedPeripheralNotifyValueBlock = receivedConnectedPeripheralNotifyValueBlock;
     if (characteristics == nil || [characteristics count] <= 0) {
@@ -332,6 +336,7 @@
         receivedConnectedPeripheralRSSIValueBlock(@0, [NSError errorWithDomain:@"com.error.ble.central.manager" code:-1 userInfo:@{NSLocalizedDescriptionKey:@"check connected peripheral not exist"}]);
         return;
     }
+    
     self.receivedConnectedPeripheralRSSIValueBlock = receivedConnectedPeripheralRSSIValueBlock;
     [self.connectedPeripheral readRSSI];
 }
@@ -386,6 +391,7 @@
     if (self.connectedPeripheral == nil) {
         return NO;
     }
+    
     return YES;
 }
 
@@ -420,9 +426,8 @@
 
 - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary<NSString *, id> *)advertisementData RSSI:(NSNumber *)RSSI
 {
-    NSLog(@"扫描发现设备:%@", advertisementData);
     if (self.scanPeripheralListBlock == nil) {
-        NSLog(@"scan block should not be nil");
+        NSLog(@"scan peripheral list block should not be nil");
         return;
     }
     
