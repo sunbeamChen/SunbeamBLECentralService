@@ -1,0 +1,5 @@
+/* Localized versions of Info.plist keys */
+
+"CFBundleDisplayName" = "中心设备";
+
+"CFBundleName" = "中心设备";
