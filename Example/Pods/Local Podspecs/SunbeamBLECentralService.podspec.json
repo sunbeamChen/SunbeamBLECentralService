@@ -1,6 +1,6 @@
 {
   "name": "SunbeamBLECentralService",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "summary": "SunbeamBLECentralService is a simple framework for iOS bluetooth central develop, it based on CoreBluetooth.",
   "homepage": "https://github.com/sunbeamChen/SunbeamBLECentralService",
   "license": {
@@ -12,12 +12,17 @@
   },
   "source": {
     "git": "https://github.com/sunbeamChen/SunbeamBLECentralService.git",
-    "tag": "0.1.17"
+    "tag": "0.1.18"
   },
   "platforms": {
     "ios": "7.0"
   },
   "source_files": "SunbeamBLECentralService/Classes/**/*",
   "public_header_files": "SunbeamBLECentralService/Classes/**/*.h",
-  "frameworks": "CoreBluetooth"
+  "frameworks": "CoreBluetooth",
+  "dependencies": {
+    "SunbeamLogService": [
+
+    ]
+  }
 }

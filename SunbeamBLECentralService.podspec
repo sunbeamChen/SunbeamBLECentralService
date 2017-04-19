@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'SunbeamBLECentralService'
-  s.version          = '0.1.17'
+  s.version          = '0.1.18'
   s.summary          = 'SunbeamBLECentralService is a simple framework for iOS bluetooth central develop, it based on CoreBluetooth.'
   s.homepage         = 'https://github.com/sunbeamChen/SunbeamBLECentralService'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
@@ -11,4 +11,5 @@ Pod::Spec.new do |s|
   s.source_files = 'SunbeamBLECentralService/Classes/**/*'
   s.public_header_files = 'SunbeamBLECentralService/Classes/**/*.h'
   s.frameworks = 'CoreBluetooth'
+  s.dependency 'SunbeamLogService'
 end
