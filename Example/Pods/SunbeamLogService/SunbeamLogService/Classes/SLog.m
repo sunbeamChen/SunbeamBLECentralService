@@ -19,11 +19,13 @@ static SLogManager* sLogManager;
 
 + (BOOL) initSLogService:(BOOL) logOn
 {
-    sLogManager = [[SLogManager alloc] initSLogManager:logOn];
-    
+    if (sLogManager == nil) {
+        sLogManager = [[SLogManager alloc] initSLogManager:logOn];
+        
 #ifdef DEBUG
-    NSLog(@"\n======================\nSunbeamLogService(https://github.com/sunbeamChen/SunbeamLogService) version is %@\n======================", SLOG_VERSION);
+        NSLog(@"\n======================\nSunbeamLogService(https://github.com/sunbeamChen/SunbeamLogService) version is %@\n======================", SLOG_VERSION);
 #endif
+    }
     
     if (sLogManager) {
         return YES;
