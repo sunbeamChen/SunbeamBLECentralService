@@ -347,6 +347,20 @@
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
 		</dict>
+		<key>148DF5E14654CD752FD20D855EACDC17</key>
+		<dict>
+			<key>fileRef</key>
+			<string>2B653A5E5681C91AC4489FF7963BFEA0</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>settings</key>
+			<dict>
+				<key>ATTRIBUTES</key>
+				<array>
+					<string>Public</string>
+				</array>
+			</dict>
+		</dict>
 		<key>1630FB354E31492DD19C7817CBDDDF56</key>
 		<dict>
 			<key>fileRef</key>
@@ -1002,7 +1016,7 @@
 				<string>E38D79140264B7C32352DE8778C4B284</string>
 				<string>0001BD576F31F2AC9B5E937C0A5A9FD2</string>
 				<string>7C0424E9294AD4132E8A68DBDC82CAED</string>
-				<string>B95B99C6B5A5DD5F2722003DC9E606BE</string>
+				<string>148DF5E14654CD752FD20D855EACDC17</string>
 			</array>
 			<key>isa</key>
 			<string>PBXHeadersBuildPhase</string>
@@ -2736,20 +2750,6 @@
 			<string>Pods</string>
 			<key>sourceTree</key>
 			<string>&lt;group&gt;</string>
-		</dict>
-		<key>B95B99C6B5A5DD5F2722003DC9E606BE</key>
-		<dict>
-			<key>fileRef</key>
-			<string>2B653A5E5681C91AC4489FF7963BFEA0</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-			<key>settings</key>
-			<dict>
-				<key>ATTRIBUTES</key>
-				<array>
-					<string>Project</string>
-				</array>
-			</dict>
 		</dict>
 		<key>BC50EED0889F2CADE010386C4263D9CF</key>
 		<dict>
