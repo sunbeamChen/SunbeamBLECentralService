@@ -77,14 +77,13 @@ typedef enum : NSInteger {
 {
     if (self = [super init]) {
         // 初始化操作
-        
+        [SLog initSLogService];
     }
     return self;
 }
 
-- (void)openBCM:(BOOL)logOn BCMOpenListener:(BCMOpenListener)BCMOpenListener
+- (void)openBCM:(BCMOpenListener)BCMOpenListener
 {
-    [SLog initSLogService:logOn];
     NSLog(@"\n======================\nsunbeam BLE central service(for multi-connection) version is %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION);
     if (_bluetoothCentralManager) {
         SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has opened");

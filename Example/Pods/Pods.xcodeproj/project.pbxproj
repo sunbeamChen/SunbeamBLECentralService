@@ -10,20 +10,6 @@
 	<string>46</string>
 	<key>objects</key>
 	<dict>
-		<key>0001BD576F31F2AC9B5E937C0A5A9FD2</key>
-		<dict>
-			<key>fileRef</key>
-			<string>F79EB7B292B6E72D96CEF910764C6414</string>
-			<key>isa</key>
-			<string>PBXBuildFile</string>
-			<key>settings</key>
-			<dict>
-				<key>ATTRIBUTES</key>
-				<array>
-					<string>Project</string>
-				</array>
-			</dict>
-		</dict>
 		<key>0176CCEC3AE18B5CF05956766FF57502</key>
 		<dict>
 			<key>includeInIndex</key>
@@ -1014,7 +1000,7 @@
 			<key>files</key>
 			<array>
 				<string>E38D79140264B7C32352DE8778C4B284</string>
-				<string>0001BD576F31F2AC9B5E937C0A5A9FD2</string>
+				<string>699B958C32C8A21E7165AEF40037DB9B</string>
 				<string>7C0424E9294AD4132E8A68DBDC82CAED</string>
 				<string>148DF5E14654CD752FD20D855EACDC17</string>
 			</array>
@@ -1555,6 +1541,20 @@
 		<dict>
 			<key>fileRef</key>
 			<string>48C5C37F58C074EA3ABE2C0140306E70</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>settings</key>
+			<dict>
+				<key>ATTRIBUTES</key>
+				<array>
+					<string>Public</string>
+				</array>
+			</dict>
+		</dict>
+		<key>699B958C32C8A21E7165AEF40037DB9B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>F79EB7B292B6E72D96CEF910764C6414</string>
 			<key>isa</key>
 			<string>PBXBuildFile</string>
 			<key>settings</key>

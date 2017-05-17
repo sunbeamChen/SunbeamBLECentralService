@@ -16,4 +16,6 @@
 
 + (NSString *) getAPPBuildVersion;
 
++ (BOOL) getAPPLogOn;
+
 @end

@@ -40,10 +40,6 @@
         _appVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
         
         if (!_appVersion) {
-            _appVersion = [[NSProcessInfo processInfo] processName];
-        }
-        
-        if (!_appVersion) {
             _appVersion = @"0";
         }
     });
@@ -60,15 +56,32 @@
         _appBuildVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
         
         if (!_appBuildVersion) {
-            _appBuildVersion = [[NSProcessInfo processInfo] processName];
-        }
-        
-        if (!_appBuildVersion) {
             _appBuildVersion = @"0";
         }
     });
     
     return _appBuildVersion;
+}
+
++ (BOOL) getAPPLogOn
+{
+    static BOOL _appSLogOn;
+    static dispatch_once_t onceToken;
+    
+    dispatch_once(&onceToken, ^{
+        NSNumber* sLogOn = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"SLogOn"];
+        if (!sLogOn) {
+            _appSLogOn = NO;
+        } else {
+            if ([sLogOn  isEqual: @(1)]) {
+                _appSLogOn = YES;
+            } else {
+                _appSLogOn = NO;
+            }
+        }
+    });
+    
+    return _appSLogOn;
 }
 
 @end

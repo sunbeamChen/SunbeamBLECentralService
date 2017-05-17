@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION @"0.2.2"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION @"0.2.3"
 
 /**
  read me
@@ -139,10 +139,9 @@ typedef void(^BDRSSIValueReadListener)(NSString* pid, NSNumber* rssi, NSError* e
 /**
  初始化BCM
 
- @param logOn 是否打印日志
  @param BCMOpenListener 回调
  */
-- (void) openBCM:(BOOL) logOn BCMOpenListener:(BCMOpenListener) BCMOpenListener;
+- (void) openBCM:(BCMOpenListener) BCMOpenListener;
 
 /**
  销毁BCM（同时断开所有设备连接）

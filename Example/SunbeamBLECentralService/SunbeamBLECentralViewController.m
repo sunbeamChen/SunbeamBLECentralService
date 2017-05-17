@@ -22,7 +22,7 @@
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
     
-    [[SBluetoothCentralManager sharedSBluetoothCentralManager] openBCM:YES BCMOpenListener:^(int state, NSError *error) {
+    [[SBluetoothCentralManager sharedSBluetoothCentralManager] openBCM:^(int state, NSError *error) {
         [[SBluetoothCentralManager sharedSBluetoothCentralManager] registBDFoundListener:^(NSString *pid, NSString *name, int state, NSDictionary *advertisement, NSNumber *rssi) {
             if ([[advertisement objectForKey:@"kCBAdvDataLocalName"] isEqualToString:@"SherLock_056"]) {
                 [[SBluetoothCentralManager sharedSBluetoothCentralManager] stopScanBD:^(NSError *error) {
@@ -72,16 +72,7 @@
         [[SBluetoothCentralManager sharedSBluetoothCentralManager] getBCMState:^(int state, NSError *error) {
             if (state == 2) {
                 [[SBluetoothCentralManager sharedSBluetoothCentralManager] startScanBD:@[SHERLOCK_SERVICE] completion:^(NSError *error) {
-//                    dispatch_time_t time = dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC);
-//                    dispatch_after(time, dispatch_get_main_queue(), ^{
-//                        [[SBluetoothCentralManager sharedSBluetoothCentralManager] stopScanBD:^(NSError *error) {
-//                            [[SBluetoothCentralManager sharedSBluetoothCentralManager] closeBCM:^(int state, NSError *error) {
-//                                [[SBluetoothCentralManager sharedSBluetoothCentralManager] getBCMState:^(int state, NSError *error) {
-//                                    
-//                                }];
-//                            }];
-//                        }];
-//                    });
+                    
                 }];
             }
         }];
