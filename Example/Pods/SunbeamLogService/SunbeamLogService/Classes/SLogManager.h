@@ -20,8 +20,10 @@
 
 #define SLog_Error(frmt, ...) DDLogError(frmt, ##__VA_ARGS__)
 
+static const DDLogLevel ddLogLevel = DDLogLevelVerbose;
+
 #ifndef LOG_LEVEL_DEF
-    #define LOG_LEVEL_DEF DDLogLevelVerbose
+    #define LOG_LEVEL_DEF ddLogLevel
 #endif
 
 #ifndef LOG_ASYNC_ENABLED

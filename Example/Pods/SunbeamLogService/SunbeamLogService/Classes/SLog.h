@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-#define SLOG_VERSION @"0.1.10"
+#define SLOG_VERSION @"0.1.11"
 
 #define SLogVerbose(format, ...) SLog_Verbose(format, ##__VA_ARGS__)
 

@@ -1,13 +1,13 @@
 PODS:
-  - CocoaLumberjack (3.1.0):
-    - CocoaLumberjack/Default (= 3.1.0)
-    - CocoaLumberjack/Extensions (= 3.1.0)
-  - CocoaLumberjack/Default (3.1.0)
-  - CocoaLumberjack/Extensions (3.1.0):
+  - CocoaLumberjack (3.2.0):
+    - CocoaLumberjack/Default (= 3.2.0)
+    - CocoaLumberjack/Extensions (= 3.2.0)
+  - CocoaLumberjack/Default (3.2.0)
+  - CocoaLumberjack/Extensions (3.2.0):
     - CocoaLumberjack/Default
-  - SunbeamBLECentralService (0.1.18):
+  - SunbeamBLECentralService (0.2.0):
     - SunbeamLogService
-  - SunbeamLogService (0.1.10):
+  - SunbeamLogService (0.1.11):
     - CocoaLumberjack
 
 DEPENDENCIES:
@@ -18,9 +18,9 @@ EXTERNAL SOURCES:
     :path: ../
 
 SPEC CHECKSUMS:
-  CocoaLumberjack: 8311463ddf9ee86a06ef92a071dd656c89244500
-  SunbeamBLECentralService: aa71a0cc391575c892473140388f3aba9a012e08
-  SunbeamLogService: 78b22e6608817e5c0afa4e983aeb951f7fbf5542
+  CocoaLumberjack: 9b4aed7073d242f29cc2f62068d995faf67f703a
+  SunbeamBLECentralService: d51401e6d5a3d69ce1c9252789f5f9686c4131d8
+  SunbeamLogService: c069bbea8d15418486316a9a70ee2645c114def6
 
 PODFILE CHECKSUM: f37e85d90ca60be4f8aae4fad6121776822a6ace
 
