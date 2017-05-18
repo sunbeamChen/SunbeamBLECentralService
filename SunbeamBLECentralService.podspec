@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'SunbeamBLECentralService'
-  s.version          = '0.2.3'
+  s.version          = '0.2.4'
   s.summary          = 'SunbeamBLECentralService is a simple framework for iOS bluetooth central develop, it based on CoreBluetooth.'
   s.homepage         = 'https://github.com/sunbeamChen/SunbeamBLECentralService'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
