@@ -7,6 +7,7 @@
 //
 
 #import "SunbeamBLECentralManager.h"
+#import <SunbeamLogService/SunbeamLogService.h>
 
 @interface SunbeamBLECentralManager() <CBCentralManagerDelegate, CBPeripheralDelegate>
 
@@ -87,7 +88,7 @@
  */
 - (void) initSunbeamBLECentralManagerWithQueue:(dispatch_queue_t) queue options:(NSDictionary<NSString *, id> *) options
 {
-    NSLog(@"sunbeam BLE central service version %@", SUNBEAM_BLE_CENTRAL_SERVICE_VERSION);
+    NSLog(@"\n======================\nsunbeam BLE central service(https://github.com/sunbeamChen/SunbeamBLECentralService) version %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_VERSION);
     self.isBluetoothEnabled = NO;
     self.disconnectPeripheralWithCustomStrategyFlag = NO;
     self.disconnectPeripheralManual = NO;
@@ -105,7 +106,7 @@
     if (bluetoothStateChanged) {
         self.bluetoothStateChangedBlock = bluetoothStateChanged;
     } else {
-        NSLog(@"bluetooth state changed block should not be nil");
+        SLogWarn(@"bluetooth state changed block should not be nil");
     }
 }
 
@@ -145,7 +146,7 @@
             [self.sunbeamBLECentralManager scanForPeripheralsWithServices:nil options:options];
         }
     } else {
-        NSLog(@"scan peripheral list block should not be nil");
+        SLogWarn(@"scan peripheral list block should not be nil");
     }
 }
 
@@ -171,19 +172,19 @@
 - (void) connectPeripheral:(CBPeripheral *) peripheral options:(NSDictionary *)options connectPeripheralSuccessBlock:(ConnectPeripheralSuccessBlock) connectPeripheralSuccessBlock connectPeripheralFailBlock:(ConnectPeripheralFailBlock) connectPeripheralFailBlock disconnectPeripheralBlock:(DisconnectPeripheralBlock) disconnectPeripheralBlock
 {
     if (connectPeripheralSuccessBlock == nil) {
-        NSLog(@"connect peripheral success block should not be nil");
+        SLogWarn(@"connect peripheral success block should not be nil");
         return;
     }
     if (connectPeripheralFailBlock == nil) {
-        NSLog(@"connect peripheral fail block should not be nil");
+        SLogWarn(@"connect peripheral fail block should not be nil");
         return;
     }
     if (disconnectPeripheralBlock == nil) {
-        NSLog(@"disconnect peripheral block should not be nil");
+        SLogWarn(@"disconnect peripheral block should not be nil");
         return;
     }
     if (peripheral == nil) {
-        NSLog(@"connect peripheral should not be nil");
+        SLogWarn(@"connect peripheral should not be nil");
         return;
     }
 
@@ -212,7 +213,7 @@
     if (self.connectedPeripheral) {
         [self.sunbeamBLECentralManager cancelPeripheralConnection:self.connectedPeripheral];
     } else {
-        NSLog(@"current connect peripheral is nil");
+        SLogWarn(@"current connect peripheral is nil");
     }
     self.sunbeamBLEWriteCharacteristic = nil;
     self.sunbeamBLENotifyCharacteristic = nil;
@@ -245,7 +246,7 @@
                 self.disconnectPeripheralBlock(nil);
                 self.disconnectPeripheralBlock = nil;
             } else {
-                NSLog(@"disconnect peripheral block should not be nil");
+                SLogWarn(@"disconnect peripheral block should not be nil");
             }
         }
     }
@@ -264,7 +265,7 @@
 - (void) discoverPeripheralServiceList:(NSArray *) services discoverPeripheralServiceListBlock:(DiscoverPeripheralServiceListBlock) discoverPeripheralServiceListBlock
 {
     if (discoverPeripheralServiceListBlock == nil) {
-        NSLog(@"discover peripheral service list block should not be nil");
+        SLogWarn(@"discover peripheral service list block should not be nil");
         return;
     }
     
@@ -292,15 +293,15 @@
 - (void) discoverPeripheralServiceCharacteristicList:(NSArray *)characteristics forService:(NSArray *)services discoverPeripheralServiceCharacteristicListBlock:(DiscoverPeripheralServiceCharacteristicListBlock) discoverPeripheralServiceCharacteristicListBlock receivedConnectedPeripheralNotifyValueBlock:(ReceivedConnectedPeripheralNotifyValueBlock) receivedConnectedPeripheralNotifyValueBlock
 {
     if (discoverPeripheralServiceCharacteristicListBlock == nil) {
-        NSLog(@"discover peripheral service characteristic list block should not be nil");
+        SLogWarn(@"discover peripheral service characteristic list block should not be nil");
         return;
     }
     if (receivedConnectedPeripheralNotifyValueBlock == nil) {
-        NSLog(@"received connected peripheral notify value block should not be nil");
+        SLogWarn(@"received connected peripheral notify value block should not be nil");
         return;
     }
     if (services == nil || [services count] <= 0) {
-        NSLog(@" peripheral services should have at least one service when discover characteristic list");
+        SLogWarn(@" peripheral services should have at least one service when discover characteristic list");
         return;
     }
     
@@ -328,7 +329,7 @@
 - (void) readConnectedPeripheralRSSIValue:(ReceivedConnectedPeripheralRSSIValueBlock) receivedConnectedPeripheralRSSIValueBlock
 {
     if (receivedConnectedPeripheralRSSIValueBlock == nil) {
-        NSLog(@"received connected peripheral RSSI value block should not be nil");
+        SLogWarn(@"received connected peripheral RSSI value block should not be nil");
         return;
     }
     
@@ -349,7 +350,7 @@
 - (void) sendDataToConnectedPeripheral:(NSMutableArray<NSData *> *) data sendCompletion:(SendDataResponseBlock) sendCompletion
 {
     if (sendCompletion == nil) {
-        NSLog(@"data send completion block should not be nil");
+        SLogWarn(@"data send completion block should not be nil");
         return;
     }
     
@@ -361,19 +362,19 @@
     self.dataSend = data;
     self.sendDataResponseBlock = sendCompletion;
     
-    NSLog(@"===向设备发送数据开始:%@", self.dataSend);
+    SLogDebug(@"===向设备发送数据开始:%@", self.dataSend);
     [self sendData:[self.dataSend objectAtIndex:0]];
 }
 
 - (void) sendData:(NSData *) data
 {
     if (data == nil) {
-        NSLog(@"data send should not be nil");
+        SLogWarn(@"data send should not be nil");
         return;
     }
     
     if (self.sunbeamBLEWriteCharacteristic == nil) {
-        NSLog(@"peripheral write characteristic should not be nil");
+        SLogWarn(@"peripheral write characteristic should not be nil");
         return;
     }
     
@@ -427,7 +428,7 @@
 - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary<NSString *, id> *)advertisementData RSSI:(NSNumber *)RSSI
 {
     if (self.scanPeripheralListBlock == nil) {
-        NSLog(@"scan peripheral list block should not be nil");
+        SLogWarn(@"scan peripheral list block should not be nil");
         return;
     }
     
@@ -437,7 +438,7 @@
 - (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
 {
     if (self.connectPeripheralSuccessBlock == nil) {
-        NSLog(@"connect peripheral success block should not be nil");
+        SLogWarn(@"connect peripheral success block should not be nil");
         return;
     }
     
@@ -450,7 +451,7 @@
 - (void)centralManager:(CBCentralManager *)central didFailToConnectPeripheral:(CBPeripheral *)peripheral error:(nullable NSError *)error
 {
     if (self.connectPeripheralFailBlock == nil) {
-        NSLog(@"connect peripheral fail block should not be nil");
+        SLogWarn(@"connect peripheral fail block should not be nil");
         return;
     }
     
@@ -460,7 +461,7 @@
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(nullable NSError *)error
 {
-    NSLog(@"蓝牙设备断开连接,self.disconnectPeripheralManual:%d, self.disconnectPeripheralWithCustomStrategyFlag:%d, self.receiveDisconnectPeripheralNotifyFlag:%d", self.disconnectPeripheralManual, self.disconnectPeripheralWithCustomStrategyFlag, self.receiveDisconnectPeripheralNotifyFlag);
+    SLogDebug(@"蓝牙设备断开连接,self.disconnectPeripheralManual:%d, self.disconnectPeripheralWithCustomStrategyFlag:%d, self.receiveDisconnectPeripheralNotifyFlag:%d", self.disconnectPeripheralManual, self.disconnectPeripheralWithCustomStrategyFlag, self.receiveDisconnectPeripheralNotifyFlag);
     if (self.disconnectPeripheralManual) {
         // 主动断开蓝牙连接时需要根据用户断开策略进行后续处理
         self.disconnectPeripheralManual = NO;
@@ -471,7 +472,7 @@
                 // 用户主动断开时希望接收断开连接回调
                 self.receiveDisconnectPeripheralNotifyFlag = NO;
                 if (self.disconnectPeripheralBlock == nil) {
-                    NSLog(@"disconnect peripheral block should not be nil");
+                    SLogWarn(@"disconnect peripheral block should not be nil");
                 } else {
                     self.disconnectPeripheralBlock(peripheral);
                 }
@@ -484,7 +485,7 @@
     } else {
         // 蓝牙连接异常断开时，调用断开回调
         if (self.disconnectPeripheralBlock == nil) {
-            NSLog(@"disconnect peripheral block should not be nil");
+            SLogWarn(@"disconnect peripheral block should not be nil");
         } else {
             self.disconnectPeripheralBlock(peripheral);
         }
@@ -504,7 +505,7 @@
 -(void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error
 {
     if (self.discoverPeripheralServiceListBlock == nil) {
-        NSLog(@"discover peripheral service list block should not be nil");
+        SLogWarn(@"discover peripheral service list block should not be nil");
         return;
     }
     
@@ -518,7 +519,7 @@
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(nullable NSError *)error
 {
     if (self.discoverPeripheralServiceCharacteristicListBlock == nil) {
-        NSLog(@"discover peripheral service characteristic list block should not be nil");
+        SLogWarn(@"discover peripheral service characteristic list block should not be nil");
         return;
     }
     
@@ -532,7 +533,7 @@
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(nullable NSError *)error
 {
     if (self.receivedConnectedPeripheralNotifyValueBlock == nil) {
-        NSLog(@"received connected peripheral notify value block should not be nil");
+        SLogWarn(@"received connected peripheral notify value block should not be nil");
         return;
     }
     
@@ -546,7 +547,7 @@
 - (void)peripheral:(CBPeripheral *)peripheral didReadRSSI:(NSNumber *)RSSI error:(nullable NSError *)error
 {
     if (self.receivedConnectedPeripheralRSSIValueBlock == nil) {
-        NSLog(@"received connected peripheral RSSI value block should not be nil");
+        SLogWarn(@"received connected peripheral RSSI value block should not be nil");
         return;
     }
     
@@ -561,16 +562,16 @@
 - (void)peripheral:(CBPeripheral *)peripheral didWriteValueForCharacteristic:(CBCharacteristic *)characteristic error:(nullable NSError *)error
 {
     if (error) {
-        NSLog(@"向设备发送数据失败:%@", error);
+        SLogWarn(@"向设备发送数据失败:%@", error);
         self.dataSend = nil;
         self.sendDataResponseBlock(error);
     } else {
-        NSLog(@"向设备发送数据成功:%@", [self.dataSend objectAtIndex:0]);
+        SLogDebug(@"向设备发送数据成功:%@", [self.dataSend objectAtIndex:0]);
         [self.dataSend removeObjectAtIndex:0];
         if ([self.dataSend count] > 0) {
             [self sendData:[self.dataSend objectAtIndex:0]];
         } else {
-            NSLog(@"===向设备发送数据完毕");
+            SLogDebug(@"===向设备发送数据完毕");
             self.sendDataResponseBlock(nil);
         }
     }
