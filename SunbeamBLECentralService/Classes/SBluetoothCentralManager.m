@@ -84,7 +84,7 @@ typedef enum : NSInteger {
 
 - (void)openBCM:(BCMOpenListener)BCMOpenListener
 {
-    NSLog(@"\n======================\nsunbeam BLE central service(for multi-connection) version is %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION);
+    NSLog(@"\n======================\nsunbeam BLE central service(for multi-connection - https://github.com/sunbeamChen/SunbeamBLECentralService) version is %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION);
     if (_bluetoothCentralManager) {
         SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has opened");
         BCMOpenListener(_BCMState, nil);

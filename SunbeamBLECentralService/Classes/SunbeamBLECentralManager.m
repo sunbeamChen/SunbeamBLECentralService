@@ -88,7 +88,7 @@
  */
 - (void) initSunbeamBLECentralManagerWithQueue:(dispatch_queue_t) queue options:(NSDictionary<NSString *, id> *) options
 {
-    NSLog(@"\n======================\nsunbeam BLE central service(https://github.com/sunbeamChen/SunbeamBLECentralService) version %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_VERSION);
+    NSLog(@"\n======================\nsunbeam BLE central service(for single-connection - https://github.com/sunbeamChen/SunbeamBLECentralService) version %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_VERSION);
     self.isBluetoothEnabled = NO;
     self.disconnectPeripheralWithCustomStrategyFlag = NO;
     self.disconnectPeripheralManual = NO;
