@@ -145,7 +145,7 @@ typedef enum : NSInteger {
     completion(_BCMState, nil);
 }
 
-- (void)startScanBD:(NSArray *)services completion:(void (^)(NSError *))completion
+- (void)startScanBD:(NSArray *)services completion:(void (^)(NSError *))completion BDFoundListener:(BDFoundListener) BDFoundListener
 {
     _scanBDList = nil;
     if (_BCMState == 0) {
@@ -166,16 +166,12 @@ typedef enum : NSInteger {
             completion([NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CENTRAL_MANAGER_HAS_NOT_INIT userInfo:@{NSLocalizedDescriptionKey:@"BCM has not init"}]);
         } else {
             _BCMState = 1;
+            _BDFoundListener = BDFoundListener;
             [_bluetoothCentralManager scanForPeripheralsWithServices:[serviceUUIDs copy] options:nil];
             SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM start scaning");
             completion(nil);
         }
     }
-}
-
-- (void)registBDFoundListener:(BDFoundListener)BDFoundListener
-{
-    _BDFoundListener = BDFoundListener;
 }
 
 - (void)getAllScanBD:(void(^)(NSMutableArray* scanBDList, NSError* error)) completion
@@ -229,6 +225,7 @@ typedef enum : NSInteger {
         if (_bluetoothCentralManager) {
             [_bluetoothCentralManager stopScan];
             _BCMState = 2;
+            _BDFoundListener = nil;
             SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"stop scan BD success");
             completion(nil);
         } else {
@@ -546,6 +543,8 @@ typedef enum : NSInteger {
     [self.scanBDList setObject:peripheralObject forKey:peripheral.identifier.UUIDString];
     if (_BDFoundListener) {
         _BDFoundListener(peripheral.identifier.UUIDString, peripheral.name, peripheral.state, advertisementData, RSSI);
+    } else {
+        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDFoundListener should not be nil");
     }
 }
 

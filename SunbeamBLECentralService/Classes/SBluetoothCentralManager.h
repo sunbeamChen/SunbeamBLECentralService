@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION @"0.2.6"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION @"0.2.7"
 
 /**
  read me
@@ -164,14 +164,7 @@ typedef void(^BDRSSIValueReadListener)(NSString* pid, NSNumber* rssi, NSError* e
  @param services 扫描指定服务的外设
  @param completion 回调
  */
-- (void) startScanBD:(NSArray *) services completion:(void(^)(NSError* error)) completion;
-
-/**
- 注册设备发现回调
-
- @param BDFoundListener 回调
- */
-- (void) registBDFoundListener:(BDFoundListener) BDFoundListener;
+- (void) startScanBD:(NSArray *) services completion:(void(^)(NSError* error)) completion BDFoundListener:(BDFoundListener) BDFoundListener;
 
 /**
  获取所有扫描到的外设列表
