@@ -50,11 +50,17 @@ typedef enum : NSInteger {
 
 @property (nonatomic, strong) BDRSSIValueReadListener BDRSSIValueReadListener;
 
+// BD scan peripheral
 // {"pid0":{"peripheral":Object,"name":"","state":"","advertisement":"","rssi":""},"pid1":{"peripheral":Object,"state":"","advertisement":"","rssi":""},...}
 @property (nonatomic, strong) NSMutableDictionary* scanBDList;
 
+// BD connected peripheral
 // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
 @property (nonatomic, strong) NSMutableDictionary* connectedBDPeripheralList;
+
+// BD disconnect peripheral - manual
+// {"pid0":Object,"pid1":Object,...}
+@property (nonatomic, strong) NSMutableDictionary* disconnectBDPeripheralList;
 
 // bluetooth central manager
 @property (nonatomic, strong) CBCentralManager* bluetoothCentralManager;
@@ -78,15 +84,17 @@ typedef enum : NSInteger {
     if (self = [super init]) {
         // 初始化操作
         [SLog initSLogService];
+#ifdef DEBUG
+        NSLog(@"\n======================\nsunbeam BLE central service(for multi-connection - https://github.com/sunbeamChen/SunbeamBLECentralService) version is %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION);
+#endif
     }
     return self;
 }
 
 - (void)openBCM:(BCMOpenListener)BCMOpenListener
 {
-    NSLog(@"\n======================\nsunbeam BLE central service(for multi-connection - https://github.com/sunbeamChen/SunbeamBLECentralService) version is %@\n======================", SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION);
     if (_bluetoothCentralManager) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has opened");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM已经开启"];
         BCMOpenListener(_BCMState, nil);
         return;
     }
@@ -96,11 +104,13 @@ typedef enum : NSInteger {
     _bluetoothCentralManager = [[CBCentralManager alloc] initWithDelegate:self queue:globalQueue];
     if (_bluetoothCentralManager == nil) {
         _BCMState = 0;
-        SLogError(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM init failed");
+        [self logError:nil sid:nil cid:nil message:@"BCM开启失败"];
         BCMOpenListener(_BCMState, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CENTRAL_MANAGER_INIT_FAILED userInfo:@{NSLocalizedDescriptionKey:@"BCM init failed"}]);
         return;
     }
-    SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM open success");
+    _connectedBDPeripheralList = nil;
+    _disconnectBDPeripheralList = nil;
+    [self logDebug:nil sid:nil cid:nil message:@"BCM开启成功"];
 }
 
 - (void)closeBCM:(BCMCloseListener)BCMCloseListener
@@ -108,24 +118,23 @@ typedef enum : NSInteger {
     _BCMState = 0;
     if (self.connectedBDPeripheralList.count > 0 && _bluetoothCentralManager != nil) {
         // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
-        for (NSDictionary* connectedPeripheral in [self.connectedBDPeripheralList allValues]) {
-            SLogDebug(@"%@ | start close BD connection %@", BLE_CENTRAL_MANAGER_ERROR, [connectedPeripheral objectForKey:@"name"]);
-            [_bluetoothCentralManager cancelPeripheralConnection:[connectedPeripheral objectForKey:@"peripheral"]];
+        //NSLog(@"%@", self.connectedBDPeripheralList);
+        for (NSString* pid in [self.connectedBDPeripheralList allKeys]) {
+            [self logDebug:pid sid:nil cid:nil message:@"执行关闭BD连接"];
+            [self.disconnectBDPeripheralList setObject:[[self.connectedBDPeripheralList objectForKey:pid] objectForKey:@"peripheral"] forKey:pid];
+            [_bluetoothCentralManager cancelPeripheralConnection:[[self.connectedBDPeripheralList objectForKey:pid] objectForKey:@"peripheral"]];
         }
     }
     [self resetBCMListener];
-    SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM close success");
+    [self logDebug:nil sid:nil cid:nil message:@"BCM关闭成功"];
     BCMCloseListener(_BCMState, nil);
 }
 
 - (void) resetBCMListener
 {
-    _bluetoothCentralManager = nil;
     _scanBDList = nil;
-    _connectedBDPeripheralList = nil;
     _BDFoundListener = nil;
     _BDCreateConnectResultListener = nil;
-    _BDDisconnectStateListener = nil;
     _BDServiceFoundListener = nil;
     _BDCharacteristicFoundListener = nil;
     _BDNotifyCharacteristicEnableListener = nil;
@@ -137,11 +146,11 @@ typedef enum : NSInteger {
 - (void)getBCMState:(void (^)(int, NSError *))completion
 {
     if (_bluetoothCentralManager == nil) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has not init");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM尚未开启"];
         completion(_BCMState, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CENTRAL_MANAGER_HAS_NOT_INIT userInfo:@{NSLocalizedDescriptionKey:@"BCM has not init"}]);
         return;
     }
-    SLogDebug(@"%@ | get BCM state %@", BLE_CENTRAL_MANAGER_ERROR, @(_BCMState));
+    [self logDebug:nil sid:nil cid:nil message:@"获取BCM状态成功"];
     completion(_BCMState, nil);
 }
 
@@ -149,10 +158,10 @@ typedef enum : NSInteger {
 {
     _scanBDList = nil;
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM蓝牙关闭"];
         completion([NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM正在扫描"];
         completion([NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         NSMutableArray* serviceUUIDs = [[NSMutableArray alloc] init];
@@ -162,13 +171,13 @@ typedef enum : NSInteger {
             }
         }
         if (_bluetoothCentralManager == nil) {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has not init");
+            [self logWarn:nil sid:nil cid:nil message:@"BCM尚未开启"];
             completion([NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CENTRAL_MANAGER_HAS_NOT_INIT userInfo:@{NSLocalizedDescriptionKey:@"BCM has not init"}]);
         } else {
             _BCMState = 1;
             _BDFoundListener = BDFoundListener;
             [_bluetoothCentralManager scanForPeripheralsWithServices:[serviceUUIDs copy] options:nil];
-            SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM start scaning");
+            [self logDebug:nil sid:nil cid:nil message:@"BCM执行扫描"];
             completion(nil);
         }
     }
@@ -177,10 +186,10 @@ typedef enum : NSInteger {
 - (void)getAllScanBD:(void(^)(NSMutableArray* scanBDList, NSError* error)) completion
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM蓝牙关闭"];
         completion(nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM正在扫描"];
         completion(nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         // {"pid0":{"peripheral":Object,"name":"","state":"","advertisement":"","rssi":""},"pid1":{"peripheral":Object,"state":"","advertisement":"","rssi":""},...}
@@ -190,7 +199,7 @@ typedef enum : NSInteger {
             NSDictionary* formatPeripheral = @{@"pId":pId, @"name":[peripheral objectForKey:@"name"], @"state":[peripheral objectForKey:@"state"], @"advertisement":[peripheral objectForKey:@"advertisement"], @"rssi":[peripheral objectForKey:@"rssi"]};
             [scanBDArray addObject:formatPeripheral];
         }
-        SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"get all scan BD success");
+        [self logDebug:nil sid:nil cid:nil message:@"获取所有扫描设备成功"];
         completion(scanBDArray, nil);
     }
 }
@@ -198,10 +207,10 @@ typedef enum : NSInteger {
 - (void)getAllConnectedBD:(void(^)(NSMutableArray* connectedBDList, NSError* error)) completion
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM蓝牙关闭"];
         completion(nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM正在扫描"];
         completion(nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
@@ -211,7 +220,7 @@ typedef enum : NSInteger {
             NSDictionary* formatPeripheral = @{@"pId":pId, @"name":[peripheral objectForKey:@"name"]};
             [connectedBDArray addObject:formatPeripheral];
         }
-        SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"get all connected BD success");
+        [self logDebug:nil sid:nil cid:nil message:@"获取所有连接设备成功"];
         completion(connectedBDArray, nil);
     }
 }
@@ -219,20 +228,20 @@ typedef enum : NSInteger {
 - (void)stopScanBD:(void (^)(NSError *))completion
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:nil sid:nil cid:nil message:@"BCM蓝牙关闭"];
         completion([NSError errorWithDomain:@"com.error.ble.central.manager" code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
         if (_bluetoothCentralManager) {
             [_bluetoothCentralManager stopScan];
             _BCMState = 2;
-            _BDFoundListener = nil;
-            SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"stop scan BD success");
+            [self logDebug:nil sid:nil cid:nil message:@"停止扫描成功"];
             completion(nil);
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has not init");
+            [self logWarn:nil sid:nil cid:nil message:@"BCM尚未开启"];
             completion([NSError errorWithDomain:@"com.error.ble.central.manager" code:CENTRAL_MANAGER_HAS_NOT_INIT userInfo:@{NSLocalizedDescriptionKey:@"BCM has not init"}]);
         }
     } else if (_BCMState == 2) {
+        [self logWarn:nil sid:nil cid:nil message:@"BCM没有扫描正在执行"];
         SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is not scaning");
         completion(nil);
     }
@@ -241,23 +250,23 @@ typedef enum : NSInteger {
 - (void)createBDConnection:(NSString *)pid BDCreateConnectResultListener:(BDCreateConnectResultListener)BDCreateConnectResultListener
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM蓝牙关闭"];
         BDCreateConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM正在扫描"];
         BDCreateConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         CBPeripheral* peripheral = [[self.scanBDList objectForKey:pid] objectForKey:@"peripheral"];
         if (peripheral == nil) {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+            [self logWarn:pid sid:nil cid:nil message:@"扫描到的外设为空"];
             BDCreateConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral is nil"}]);
         } else {
             if (_bluetoothCentralManager == nil) {
-                SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has not init");
+                [self logWarn:pid sid:nil cid:nil message:@"BCM尚未开启"];
                 BDCreateConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CENTRAL_MANAGER_HAS_NOT_INIT userInfo:@{NSLocalizedDescriptionKey:@"BCM has not init"}]);
             } else {
                 _BDCreateConnectResultListener = BDCreateConnectResultListener;
-                SLogDebug(@"%@ | start create BD connection %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+                [self logDebug:pid sid:nil cid:nil message:@"执行设备连接"];
                 [_bluetoothCentralManager connectPeripheral:peripheral options:nil];
             }
             
@@ -268,22 +277,23 @@ typedef enum : NSInteger {
 - (void)closeBDConnection:(NSString *)pid BDCloseConnectResultListener:(BDCloseConnectResultListener)BDCloseConnectResultListener
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM蓝牙关闭"];
         BDCloseConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM正在扫描"];
         BDCloseConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
-        CBPeripheral* peripheral = [[self.scanBDList objectForKey:pid] objectForKey:@"peripheral"];
+        CBPeripheral* peripheral = [[self.connectedBDPeripheralList objectForKey:pid] objectForKey:@"peripheral"];
         if (peripheral == nil) {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+            [self logWarn:pid sid:nil cid:nil message:@"连接中的外设为空"];
             BDCloseConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral is nil"}]);
         } else {
             if (_bluetoothCentralManager == nil) {
-                SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM has not init");
+                [self logWarn:pid sid:nil cid:nil message:@"BCM尚未开启"];
                 BDCloseConnectResultListener(pid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CENTRAL_MANAGER_HAS_NOT_INIT userInfo:@{NSLocalizedDescriptionKey:@"BCM has not init"}]);
             } else {
-                SLogDebug(@"%@ | start close BD connection %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+                [self logDebug:pid sid:nil cid:nil message:@"执行设备断开"];
+                [self.disconnectBDPeripheralList setObject:peripheral forKey:pid];
                 [_bluetoothCentralManager cancelPeripheralConnection:peripheral];
                 BDCloseConnectResultListener(pid, nil);
             }
@@ -299,21 +309,21 @@ typedef enum : NSInteger {
 - (void)discoverBDServices:(NSString *)pid BDServiceFoundListener:(BDServiceFoundListener)BDServiceFoundListener
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM蓝牙关闭"];
         BDServiceFoundListener(pid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM正在扫描"];
         BDServiceFoundListener(pid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
         NSDictionary* peripheralDict = [self.connectedBDPeripheralList objectForKey:pid];
         if (peripheralDict == nil) {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+            [self logWarn:pid sid:nil cid:nil message:@"连接中的外设为空"];
             BDServiceFoundListener(pid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral is nil"}]);
         } else {
             CBPeripheral* peripheral = [peripheralDict objectForKey:@"peripheral"];
             _BDServiceFoundListener = BDServiceFoundListener;
-            SLogDebug(@"%@ | start discover BD services %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+            [self logDebug:pid sid:nil cid:nil message:@"执行发现外设服务"];
             [peripheral discoverServices:nil];
         }
     }
@@ -322,10 +332,10 @@ typedef enum : NSInteger {
 - (void)discoverBDCharacteristics:(NSString *)pid sid:(NSString *)sid BDCharacteristicFoundListener:(BDCharacteristicFoundListener)BDCharacteristicFoundListener
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:pid sid:sid cid:nil message:@"BCM蓝牙关闭"];
         BDCharacteristicFoundListener(pid, sid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:pid sid:sid cid:nil message:@"BCM正在扫描"];
         BDCharacteristicFoundListener(pid, sid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
@@ -338,13 +348,13 @@ typedef enum : NSInteger {
                 if (serviceDict) {
                     CBService* service = [serviceDict objectForKey:@"service"];
                     _BDCharacteristicFoundListener = BDCharacteristicFoundListener;
-                    SLogDebug(@"%@ | start discover BD characteristics %@", BLE_CENTRAL_MANAGER_ERROR, sid);
+                    [self logDebug:pid sid:sid cid:nil message:@"执行发现外设特征值"];
                     [peripheral discoverCharacteristics:nil forService:service];
                     return;
                 }
             }
         }
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral service is nil");
+        [self logWarn:pid sid:sid cid:nil message:@"连接中的外设服务为空"];
         BDCharacteristicFoundListener(pid, sid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_SERVICE_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral service is nil"}]);
     }
 }
@@ -352,10 +362,10 @@ typedef enum : NSInteger {
 - (void)enableBDNotifyCharacteristic:(NSString *)pid sid:(NSString *)sid cid:(NSString *)cid subFlag:(BOOL)subFlag BDNotifyCharacteristicEnableListener:(BDNotifyCharacteristicEnableListener)BDNotifyCharacteristicEnableListener
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:pid sid:sid cid:cid message:@"BCM蓝牙关闭"];
         BDNotifyCharacteristicEnableListener(pid, sid, cid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:pid sid:sid cid:cid message:@"BCM正在扫描"];
         BDNotifyCharacteristicEnableListener(pid, sid, cid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
@@ -372,7 +382,7 @@ typedef enum : NSInteger {
                         if (characteristicDict) {
                             CBCharacteristic* characteristic = [characteristicDict objectForKey:@"characteristic"];
                             _BDNotifyCharacteristicEnableListener = BDNotifyCharacteristicEnableListener;
-                            SLogDebug(@"%@ | start enable BD notify characteristic %@", BLE_CENTRAL_MANAGER_ERROR, cid);
+                            [self logDebug:pid sid:sid cid:cid message:@"执行订阅外设特征值"];
                             [peripheral setNotifyValue:subFlag forCharacteristic:characteristic];
                             return;
                         }
@@ -380,7 +390,7 @@ typedef enum : NSInteger {
                 }
             }
         }
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral service notify characteristic is nil");
+        [self logWarn:pid sid:sid cid:cid message:@"连接中的外设特征值为空"];
         BDNotifyCharacteristicEnableListener(pid, sid, cid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_SERVICE_NOTIFY_CHARACTERISTIC_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral service notify characteristic is nil"}]);
     }
 }
@@ -393,10 +403,10 @@ typedef enum : NSInteger {
 - (void)writeValueToBD:(NSString *)pid sid:(NSString *)sid cid:(NSString *)cid value:(NSData *)value BDWriteCharacteristicResponseListener:(BDWriteCharacteristicResponseListener)BDWriteCharacteristicResponseListener
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:pid sid:sid cid:cid message:@"BCM蓝牙关闭"];
         BDWriteCharacteristicResponseListener(pid, sid, cid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:pid sid:sid cid:cid message:@"BCM正在扫描"];
         BDWriteCharacteristicResponseListener(pid, sid, cid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
@@ -413,7 +423,7 @@ typedef enum : NSInteger {
                         if (characteristicDict) {
                             CBCharacteristic* characteristic = [characteristicDict objectForKey:@"characteristic"];
                             _BDWriteCharacteristicResponseListener = BDWriteCharacteristicResponseListener;
-                            SLogDebug(@"%@ | start write value to BD %@", BLE_CENTRAL_MANAGER_ERROR, value);
+                            [self logDebug:pid sid:sid cid:cid message:@"执行向设备写入数据"];
                             [peripheral writeValue:value forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
                             return;
                         }
@@ -421,7 +431,7 @@ typedef enum : NSInteger {
                 }
             }
         }
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral service write characteristic is nil");
+        [self logWarn:pid sid:sid cid:cid message:@"连接中的外设特征值为空"];
         BDWriteCharacteristicResponseListener(pid, sid, cid, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_SERVICE_WRITE_CHARACTERISTIC_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral service write characteristic is nil"}]);
     }
 }
@@ -429,10 +439,10 @@ typedef enum : NSInteger {
 - (void)readBDRSSIValue:(NSString *)pid BDRSSIValueReadListener:(BDRSSIValueReadListener)BDRSSIValueReadListener
 {
     if (_BCMState == 0) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is power off");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM蓝牙关闭"];
         BDRSSIValueReadListener(pid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_POWER_OFF userInfo:@{NSLocalizedDescriptionKey:@"BCM is power off"}]);
     } else if (_BCMState == 1) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BCM is scaning");
+        [self logWarn:pid sid:nil cid:nil message:@"BCM正在扫描"];
         BDRSSIValueReadListener(pid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:BLUETOOTH_IS_SCANING userInfo:@{NSLocalizedDescriptionKey:@"BCM is scaning"}]);
     } else {
         // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
@@ -440,11 +450,11 @@ typedef enum : NSInteger {
         if (peripheralDict) {
             CBPeripheral* peripheral = [peripheralDict objectForKey:@"peripheral"];
             _BDRSSIValueReadListener = BDRSSIValueReadListener;
-            SLogDebug(@"%@ | start read peripheral rssi %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+            [self logDebug:pid sid:nil cid:nil message:@"执行读取设备RSSI"];
             [peripheral readRSSI];
             return;
         }
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+        [self logWarn:pid sid:nil cid:nil message:@"连接中的外设为空"];
         BDRSSIValueReadListener(pid, nil, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_IS_NIL userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral is nil"}]);
     }
 }
@@ -470,8 +480,8 @@ typedef enum : NSInteger {
     switch (central.state) {
         case CBCentralManagerStatePoweredOn:
         {
-            SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"蓝牙适配器状态改变:开启");
             _BCMState = 2;
+            [self logDebug:nil sid:nil cid:nil message:@"蓝牙适配器状态改变:开启"];
             if (_BCMOpenListener) {
                 _BCMOpenListener(_BCMState, nil);
                 _BCMOpenListener = nil;
@@ -486,8 +496,8 @@ typedef enum : NSInteger {
         case CBCentralManagerStateUnknown:
         default:
         {
-            SLogDebug(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"蓝牙适配器状态改变:关闭");
             _BCMState = 0;
+            [self logDebug:nil sid:nil cid:nil message:@"蓝牙适配器状态改变:关闭"];
             break;
         }
     }
@@ -538,13 +548,13 @@ typedef enum : NSInteger {
     if (peripheral == nil || peripheral.name == nil || advertisementData == nil || RSSI == nil) {
         return;
     }
-    SLogDebug(@"%@ | %@ %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name, [advertisementData objectForKey:@"kCBAdvDataLocalName"]);
+    [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"发现外设"];
     NSDictionary* peripheralObject = @{@"peripheral":peripheral, @"name":peripheral.name, @"state":@(peripheral.state), @"advertisement":advertisementData, @"rssi":RSSI};
     [self.scanBDList setObject:peripheralObject forKey:peripheral.identifier.UUIDString];
     if (_BDFoundListener) {
         _BDFoundListener(peripheral.identifier.UUIDString, peripheral.name, peripheral.state, advertisementData, RSSI);
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDFoundListener should not be nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDFoundListener为空"];
     }
 }
 
@@ -565,11 +575,10 @@ typedef enum : NSInteger {
         NSDictionary* peripheralDict = @{@"peripheral":peripheral,@"name":peripheral.name};
         [self.connectedBDPeripheralList setObject:peripheralDict forKey:peripheral.identifier.UUIDString];
         peripheral.delegate = self;
-        SLogDebug(@"%@ | create BD connection success %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+        [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BD连接成功"];
         _BDCreateConnectResultListener(peripheral.identifier.UUIDString, nil);
-        _BDCreateConnectResultListener = nil;
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDCreateConnectResultListener should not be nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDCreateConnectResultListener为空"];
     }
 }
 
@@ -588,11 +597,10 @@ typedef enum : NSInteger {
 {
     // 蓝牙连接失败时回调
     if (_BDCreateConnectResultListener) {
-        SLogDebug(@"%@ | create BD connection fail %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+        [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BD连接失败"];
         _BDCreateConnectResultListener(peripheral.identifier.UUIDString, [NSError errorWithDomain:BLE_CENTRAL_MANAGER_ERROR code:CONNECT_PERIPHERAL_FAILED userInfo:@{NSLocalizedDescriptionKey:@"connect peripheral failed"}]);
-        _BDCreateConnectResultListener = nil;
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDCreateConnectResultListener should not be nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDCreateConnectResultListener为空"];
     }
 }
 
@@ -614,21 +622,32 @@ typedef enum : NSInteger {
     // {"pid0":{"peripheral":Object,"name":"","services":{"sid0":{"service":Object,"isPrimary":"","characteristics":{"cid0":{"characteristic":Object,"type":"notify/read/write"}}}}}}
     NSDictionary* peripheralDict = [self.connectedBDPeripheralList objectForKey:peripheral.identifier.UUIDString];
     if (peripheralDict == nil) {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"disconnect peripheral is not exist in connectedBDPeripheralList");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"断开BD在已连接BD列表中不存在"];
         if (_BDDisconnectStateListener) {
-            SLogDebug(@"%@ | BD disconnect %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+            if ([self.disconnectBDPeripheralList objectForKey:peripheral.identifier.UUIDString] != nil) {
+                [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BD连接主动断开"];
+                [self.disconnectBDPeripheralList removeObjectForKey:peripheral.identifier.UUIDString];
+                return;
+            }
+            [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BD连接异常断开"];
             _BDDisconnectStateListener(peripheral.identifier.UUIDString, nil);
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDDisconnectStateListener should not be nil");
+            [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDDisconnectStateListener为空"];
         }
     } else {
         if (_BDDisconnectStateListener) {
-            SLogDebug(@"%@ | BD disconnect %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name);
+            if ([self.disconnectBDPeripheralList objectForKey:peripheral.identifier.UUIDString] != nil) {
+                [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BD连接主动断开"];
+                [self.disconnectBDPeripheralList removeObjectForKey:peripheral.identifier.UUIDString];
+                return;
+            }
+            [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BD连接异常断开"];
             _BDDisconnectStateListener(peripheral.identifier.UUIDString, nil);
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDDisconnectStateListener should not be nil");
+            [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDDisconnectStateListener为空"];
         }
     }
+    [self.disconnectBDPeripheralList removeObjectForKey:peripheral.identifier.UUIDString];
     [self.connectedBDPeripheralList removeObjectForKey:peripheral.identifier.UUIDString];
 }
 
@@ -691,11 +710,10 @@ typedef enum : NSInteger {
 {
     // 8.0以上系统版本，设备蓝牙连接成功，通过readRSSI:接口获取RSSI回调
     if (_BDRSSIValueReadListener) {
-        SLogDebug(@"%@ | read BD rssi success %@ %@", BLE_CENTRAL_MANAGER_ERROR, peripheral.name, RSSI);
+        [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"获取RSSI成功"];
         _BDRSSIValueReadListener(peripheral.identifier.UUIDString, RSSI, nil);
-        _BDRSSIValueReadListener = nil;
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDRSSIValueReadListener should not be nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDRSSIValueReadListener为空"];
     }
 }
 
@@ -726,14 +744,13 @@ typedef enum : NSInteger {
         [pDict setObject:servicesDict forKey:@"services"];
         [self.connectedBDPeripheralList setObject:pDict forKey:peripheral.identifier.UUIDString];
         if (_BDServiceFoundListener) {
-            SLogDebug(@"%@ | discover BD services success %@", BLE_CENTRAL_MANAGER_ERROR, sidArray);
+            [self logDebug:peripheral.identifier.UUIDString sid:nil cid:nil message:@"发现外设服务成功"];
             _BDServiceFoundListener(peripheral.identifier.UUIDString, sidArray, nil);
-            _BDServiceFoundListener = nil;
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDServiceFoundListener should not be nil");
+            [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDServiceFoundListener为空"];
         }
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"连接中外设为空"];
     }
 }
 
@@ -788,20 +805,19 @@ typedef enum : NSInteger {
                 [pDict setObject:sDict forKey:@"services"];
                 [self.connectedBDPeripheralList setObject:pDict forKey:peripheral.identifier.UUIDString];
                 if (_BDCharacteristicFoundListener) {
-                    SLogDebug(@"%@ | discover BD characteristics success %@", BLE_CENTRAL_MANAGER_ERROR, cidArray);
+                    [self logDebug:peripheral.identifier.UUIDString sid:service.UUID.UUIDString cid:nil message:@"发现外设特征值成功"];
                     _BDCharacteristicFoundListener(peripheral.identifier.UUIDString, service.UUID.UUIDString, cidArray, nil);
-                    _BDCharacteristicFoundListener = nil;
                 } else {
-                    SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDCharacteristicFoundListener should not be nil");
+                    [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"BDCharacteristicFoundListener为空"];
                 }
             } else {
-                SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral service is nil");
+                [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"连接中指定外设服务为空"];
             }
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral services is nil");
+            [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"连接中外设服务列表为空"];
         }
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:nil message:@"连接中外设为空"];
     }
 }
 
@@ -836,13 +852,13 @@ typedef enum : NSInteger {
                     }
                 }
             }
-            SLogDebug(@"%@ | receive BD value %@", BLE_CENTRAL_MANAGER_ERROR, characteristic.value);
+            [self logDebug:peripheral.identifier.UUIDString sid:serviceId cid:characteristic.UUID.UUIDString message:@"收到外设发送数据"];
             _BDCharacteristicValueListener(peripheral.identifier.UUIDString, serviceId, characteristic.UUID.UUIDString, characteristic.value, nil);
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+            [self logWarn:peripheral.identifier.UUIDString sid:nil cid:characteristic.UUID.UUIDString message:@"连接中外设为空"];
         }
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDCharacteristicValueListener should not be nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:characteristic.UUID.UUIDString message:@"BDCharacteristicValueListener为空"];
     }
 }
 
@@ -877,13 +893,13 @@ typedef enum : NSInteger {
                     }
                 }
             }
-            SLogDebug(@"%@ | write value with response %@", BLE_CENTRAL_MANAGER_ERROR, characteristic.value);
+            [self logDebug:peripheral.identifier.UUIDString sid:serviceId cid:characteristic.UUID.UUIDString message:@"向外设写入数据响应"];
             _BDWriteCharacteristicResponseListener(peripheral.identifier.UUIDString, serviceId, characteristic.UUID.UUIDString, nil);
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+            [self logWarn:peripheral.identifier.UUIDString sid:nil cid:characteristic.UUID.UUIDString message:@"连接中外设为空"];
         }
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDWriteCharacteristicResponseListener should not be nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:characteristic.UUID.UUIDString message:@"BDWriteCharacteristicResponseListener为空"];
     }
 }
 
@@ -918,13 +934,13 @@ typedef enum : NSInteger {
                     }
                 }
             }
-            SLogDebug(@"%@ | characteristic enable with response %@", BLE_CENTRAL_MANAGER_ERROR, characteristic.UUID.UUIDString);
+            [self logDebug:peripheral.identifier.UUIDString sid:serviceId cid:characteristic.UUID.UUIDString message:@"订阅外设特征值响应"];
             _BDNotifyCharacteristicEnableListener(peripheral.identifier.UUIDString, serviceId, characteristic.UUID.UUIDString, nil);
         } else {
-            SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"connect peripheral is nil");
+            [self logWarn:peripheral.identifier.UUIDString sid:nil cid:characteristic.UUID.UUIDString message:@"连接中外设为空"];
         }
     } else {
-        SLogWarn(@"%@ | %@", BLE_CENTRAL_MANAGER_ERROR, @"BDNotifyCharacteristicEnableListener should not be nil");
+        [self logWarn:peripheral.identifier.UUIDString sid:nil cid:characteristic.UUID.UUIDString message:@"BDNotifyCharacteristicEnableListener为空"];
     }
 }
 
@@ -991,6 +1007,31 @@ typedef enum : NSInteger {
     }
     
     return _connectedBDPeripheralList;
+}
+
+- (NSMutableDictionary *)disconnectBDPeripheralList
+{
+    if (_disconnectBDPeripheralList == nil) {
+        _disconnectBDPeripheralList = [[NSMutableDictionary alloc] init];
+    }
+    
+    return _disconnectBDPeripheralList;
+}
+
+#pragma mark - log
+- (void) logDebug:(NSString *)pid sid:(NSString *)sid cid:(NSString *)cid message:(NSString *)message
+{
+    SLogDebug(@"%@ | %d | %@ | %@ | %@ | %@", BLE_CENTRAL_MANAGER_ERROR, _BCMState, pid, sid, cid, message);
+}
+
+- (void) logWarn:(NSString *)pid sid:(NSString *)sid cid:(NSString *)cid message:(NSString *)message
+{
+    SLogWarn(@"%@ | %d | %@ | %@ | %@ | %@", BLE_CENTRAL_MANAGER_ERROR, _BCMState, pid, sid, cid, message);
+}
+
+- (void) logError:(NSString *)pid sid:(NSString *)sid cid:(NSString *)cid message:(NSString *)message
+{
+    SLogError(@"%@ | %d | %@ | %@ | %@ | %@", BLE_CENTRAL_MANAGER_ERROR, _BCMState, pid, sid, cid, message);
 }
 
 @end

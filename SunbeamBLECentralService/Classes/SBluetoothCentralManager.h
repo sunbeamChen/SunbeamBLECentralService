@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION @"0.2.7"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_MULTI_CONNECTION_VERSION @"0.2.8"
 
 /**
  read me
