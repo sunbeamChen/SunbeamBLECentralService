@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <CoreBluetooth/CoreBluetooth.h>
 
-#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.18"
+#define SUNBEAM_BLE_CENTRAL_SERVICE_VERSION @"0.1.19"
 
 // 扫描蓝牙设备
 typedef void(^ScanPeripheralListBlock)(CBPeripheral* peripheral, NSDictionary* advertisement, NSNumber* RSSI);
@@ -109,7 +109,16 @@ typedef void(^BluetoothStateChanged)(BOOL isOn);
 - (void) disconnectPeripheralWithDefaultStrategy;
 
 /**
- 2.1、断开连接中的外围设备对象
+ 2.2、断开连接中的外围设备对象
+ 
+ 采用默认规则：
+ 主动断开时不接收蓝牙连接断开通知。
+ 异常断开时接收蓝牙连接断开通知。
+ */
+- (void) disconnectPeripheralWithDefaultStrategy:(NSArray *) services;
+
+/**
+ 2.3、断开连接中的外围设备对象
  
  采用自定义规则：
  主动断开时，根据receiveDisconnectPeripheralNotifyOrNot的值判断是否接收蓝牙连接断开回调。

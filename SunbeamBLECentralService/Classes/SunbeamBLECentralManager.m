@@ -222,7 +222,39 @@
 }
 
 /**
- 2.1、断开连接中的外围设备对象
+ 2.2、断开连接中的外围设备对象
+ 
+ 采用默认规则：
+ 主动断开时不接收蓝牙连接断开通知。
+ 异常断开时接收蓝牙连接断开通知。
+ */
+- (void) disconnectPeripheralWithDefaultStrategy:(NSArray *) services
+{
+    NSMutableArray* serviceUUIDArray = [[NSMutableArray alloc] init];
+    for (NSString* service in services) {
+        [serviceUUIDArray addObject:[CBUUID UUIDWithString:service]];
+    }
+    if ([serviceUUIDArray count] > 0) {
+        NSArray* peripherals = [self.sunbeamBLECentralManager retrieveConnectedPeripheralsWithServices:serviceUUIDArray];
+        if ([peripherals count] > 0) {
+            self.disconnectPeripheralManual = YES;
+            self.disconnectPeripheralWithCustomStrategyFlag = NO;
+            self.receiveDisconnectPeripheralNotifyFlag = NO;
+            for (CBPeripheral* peripheral in peripherals) {
+                [self.sunbeamBLECentralManager cancelPeripheralConnection:peripheral];
+            }
+        }
+    }
+    self.sunbeamBLEWriteCharacteristic = nil;
+    self.sunbeamBLENotifyCharacteristic = nil;
+    if (self.connectedPeripheral) {
+        self.connectedPeripheral.delegate = nil;
+        self.connectedPeripheral = nil;
+    }
+}
+
+/**
+ 2.3、断开连接中的外围设备对象
  
  采用自定义规则：
  根据receiveDisconnectPeripheralNotifyOrNot的值判断是否接收蓝牙连接断开回调。
